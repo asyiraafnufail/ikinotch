@@ -1,0 +1,14 @@
+# Swift Package Manager & Build Artifacts
+.build/
+.swiftpm/
+build/
+DerivedData/
+
+# macOS & Editor Files
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+*.xcuserdata
+*.xcscmblueprint

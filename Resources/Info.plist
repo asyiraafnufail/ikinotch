@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleExecutable</key>
+    <string>IkiNotch</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.ikinotch.app</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>IkiNotch</string>
+    <key>CFBundleDisplayName</key>
+    <string>IkiNotch</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>13.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSCalendarsUsageDescription</key>
+    <string>IkiNotch displays your upcoming calendar event inside the expanded notch.</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>IkiNotch displays your upcoming calendar event inside the expanded notch.</string>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>IkiNotch uses Apple Events to control playback in Music or Spotify when you press media controls.</string>
+</dict>
+</plist>
