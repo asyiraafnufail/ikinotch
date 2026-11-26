@@ -300,6 +300,12 @@ struct NotchContentView: View {
                             .font(.system(size: 11, weight: .semibold, design: .rounded))
                             .monospacedDigit()
                             .foregroundColor(.white.opacity(0.92))
+                        if let timeStr = battery.status.formattedTimeRemaining {
+                            Text("· \(timeStr)")
+                                .font(.system(size: 10, weight: .medium, design: .rounded))
+                                .monospacedDigit()
+                                .foregroundColor(.white.opacity(0.58))
+                        }
                     }
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)

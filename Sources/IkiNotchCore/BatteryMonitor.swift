@@ -88,12 +88,12 @@ public final class BatteryMonitor: ObservableObject {
         }
         let source = unmanagedSource.takeRetainedValue()
         runLoopSource = source
-        CFRunLoopAddSource(CFRunLoopGetMain(), source, .defaultMode)
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
     }
 
     public func stop() {
         if let source = runLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .defaultMode)
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
             CFRunLoopSourceInvalidate(source)
             runLoopSource = nil
         }
