@@ -104,7 +104,7 @@ struct NotchContentView: View {
                         .transition(.opacity)
                 }
             }
-            .padding(.horizontal, currentMetrics.topEarRadius + 10)
+            .padding(.horizontal, currentMetrics.topEarRadius + (controller.displayState == .collapsed ? 4 : 10))
         }
         .clipShape(shape)
         .contentShape(shape)
@@ -142,56 +142,46 @@ struct NotchContentView: View {
 
         case .custom:
             let label = settings.customIdleText.trimmingCharacters(in: .whitespacesAndNewlines)
-            if settings.customIdleShowBattery {
-                HStack(spacing: 6) {
-                    Text(label.isEmpty ? "IkiNotch" : label)
-                        .font(.system(size: 10.5, weight: .medium))
-                        .foregroundColor(.white.opacity(0.88))
-                        .lineLimit(1)
-                    Spacer(minLength: 4)
-                    if keepAwake.isActive {
-                        keepAwakeIcon
-                    }
-                    if settings.showCapsLockIndicator && capsLock.isCapsLockOn {
-                        capsLockIcon
-                    }
+            HStack(spacing: 8) {
+                Text(label.isEmpty ? "IkiNotch" : label)
+                    .font(.system(size: 10.5, weight: .medium))
+                    .foregroundColor(.white.opacity(0.88))
+                    .lineLimit(1)
+                if keepAwake.isActive {
+                    keepAwakeIcon
+                }
+                if settings.showCapsLockIndicator && capsLock.isCapsLockOn {
+                    capsLockIcon
+                }
+                if settings.customIdleShowBattery {
                     idleBatteryBadge
                 }
-                .padding(.horizontal, 4)
-            } else {
-                HStack(spacing: 6) {
-                    Text(label.isEmpty ? "IkiNotch" : label)
-                        .font(.system(size: 10.5, weight: .medium))
-                        .foregroundColor(.white.opacity(0.88))
-                        .lineLimit(1)
-                    if keepAwake.isActive {
-                        keepAwakeIcon
-                    }
-                    if settings.showCapsLockIndicator && capsLock.isCapsLockOn {
-                        capsLockIcon
-                    }
-                }
-                .padding(.horizontal, 4)
             }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 2)
 
         case .smartStatus:
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 if let track = nowPlaying.currentTrack, track.isPlaying {
-                    Circle()
-                        .fill(Color(hue: track.accentHue, saturation: 0.78, brightness: 0.92))
-                        .frame(width: 6, height: 6)
-                    Text(track.title)
-                        .font(.system(size: 10.5, weight: .medium))
-                        .foregroundColor(.white.opacity(0.92))
-                        .lineLimit(1)
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(Color(hue: track.accentHue, saturation: 0.78, brightness: 0.92))
+                            .frame(width: 6, height: 6)
+                        Text(track.title)
+                            .font(.system(size: 10.5, weight: .medium))
+                            .foregroundColor(.white.opacity(0.92))
+                            .lineLimit(1)
+                    }
                 } else if let event = calendar.nextEvent {
-                    Circle()
-                        .fill(Color(hex: event.colorHex))
-                        .frame(width: 6, height: 6)
-                    Text(event.title)
-                        .font(.system(size: 10.5, weight: .medium))
-                        .foregroundColor(.white.opacity(0.88))
-                        .lineLimit(1)
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(Color(hex: event.colorHex))
+                            .frame(width: 6, height: 6)
+                        Text(event.title)
+                            .font(.system(size: 10.5, weight: .medium))
+                            .foregroundColor(.white.opacity(0.88))
+                            .lineLimit(1)
+                    }
                 } else if let ssid = wifi.currentSSID {
                     HStack(spacing: 4) {
                         Image(systemName: "wifi")
@@ -209,16 +199,18 @@ struct NotchContentView: View {
                         .lineLimit(1)
                 }
 
-                Spacer(minLength: 4)
                 if keepAwake.isActive {
                     keepAwakeIcon
                 }
                 if settings.showCapsLockIndicator && capsLock.isCapsLockOn {
                     capsLockIcon
                 }
-                idleBatteryBadge
+                if settings.showBattery {
+                    idleBatteryBadge
+                }
             }
-            .padding(.horizontal, 4)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 2)
         }
     }
 
