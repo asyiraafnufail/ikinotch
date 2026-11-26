@@ -203,10 +203,9 @@ struct NotchContentView: View {
                             .lineLimit(1)
                     }
                 } else {
-                    let fallback = settings.customIdleText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    Text(fallback.isEmpty ? "Offline" : fallback)
+                    Text("Offline")
                         .font(.system(size: 10.5, weight: .medium))
-                        .foregroundColor(.white.opacity(0.65))
+                        .foregroundColor(.white.opacity(0.62))
                         .lineLimit(1)
                 }
 

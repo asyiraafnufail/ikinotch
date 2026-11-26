@@ -14,6 +14,8 @@ public final class SystemControlsManager: ObservableObject {
 
     private typealias SetBTPowerFn = @convention(c) (Int32) -> Void
     private let setBTPowerFn: SetBTPowerFn?
+    private var bluetoothTransitionLockUntil: Date?
+    private var bluetoothRefreshWorkItem: DispatchWorkItem?
 
     public init() {
         let btPath = "/System/Library/Frameworks/IOBluetooth.framework/IOBluetooth"
@@ -34,7 +36,12 @@ public final class SystemControlsManager: ObservableObject {
 
     // MARK: - Bluetooth
 
-    public func refreshBluetooth() {
+    public func refreshBluetooth(force: Bool = false) {
+        if !force, let lockUntil = bluetoothTransitionLockUntil, Date() < lockUntil {
+            return
+        }
+        bluetoothTransitionLockUntil = nil
+
         if let controller = IOBluetoothHostController.default() {
             isBluetoothOn = (controller.powerState == kBluetoothHCIPowerStateON)
         } else {
@@ -51,14 +58,20 @@ public final class SystemControlsManager: ObservableObject {
     public func toggleBluetooth() {
         let target: Int32 = isBluetoothOn ? 0 : 1
         if let fn = setBTPowerFn {
+            bluetoothRefreshWorkItem?.cancel()
             fn(target)
             isBluetoothOn = (target == 1)
             if !isBluetoothOn {
                 connectedBluetoothDevice = nil
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { [weak self] in
-                self?.refreshBluetooth()
+            // Hardware Bluetooth radio takes ~1.5-2.0s to finish powering up;
+            // hold optimistic UI state until hardware settles so it never bounces back to "BT Off".
+            bluetoothTransitionLockUntil = Date().addingTimeInterval(2.2)
+            let work = DispatchWorkItem { [weak self] in
+                self?.refreshBluetooth(force: true)
             }
+            bluetoothRefreshWorkItem = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.2, execute: work)
         } else if let url = URL(string: "x-apple.systempreferences:com.apple.BluetoothSettings") {
             NSWorkspace.shared.open(url)
         }
