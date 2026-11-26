@@ -26,14 +26,18 @@ public struct CalendarEventInfo: Equatable {
         self.colorHex = colorHex
     }
 
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
+
     public func formattedTimeRange(now: Date = Date()) -> String {
         if isAllDay {
             return "All Day"
         }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        let start = formatter.string(from: startDate)
-        let end = formatter.string(from: endDate)
+        let start = Self.timeFormatter.string(from: startDate)
+        let end = Self.timeFormatter.string(from: endDate)
         if startDate <= now && endDate > now {
             return "Now • until \(end)"
         }

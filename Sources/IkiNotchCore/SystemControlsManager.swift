@@ -42,16 +42,33 @@ public final class SystemControlsManager: ObservableObject {
         }
         bluetoothTransitionLockUntil = nil
 
-        if let controller = IOBluetoothHostController.default() {
-            isBluetoothOn = (controller.powerState == kBluetoothHCIPowerStateON)
-        } else {
-            isBluetoothOn = false
-        }
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let isOn: Bool
+            if let controller = IOBluetoothHostController.default() {
+                isOn = (controller.powerState == kBluetoothHCIPowerStateON)
+            } else {
+                isOn = false
+            }
 
-        if isBluetoothOn, let devices = IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice] {
-            connectedBluetoothDevice = devices.first(where: { $0.isConnected() })?.name
-        } else {
-            connectedBluetoothDevice = nil
+            let deviceName: String?
+            if isOn, let devices = IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice] {
+                deviceName = devices.first(where: { $0.isConnected() })?.name
+            } else {
+                deviceName = nil
+            }
+
+            DispatchQueue.main.async {
+                guard let self else { return }
+                if let lockUntil = self.bluetoothTransitionLockUntil, Date() < lockUntil {
+                    return
+                }
+                if self.isBluetoothOn != isOn {
+                    self.isBluetoothOn = isOn
+                }
+                if self.connectedBluetoothDevice != deviceName {
+                    self.connectedBluetoothDevice = deviceName
+                }
+            }
         }
     }
 

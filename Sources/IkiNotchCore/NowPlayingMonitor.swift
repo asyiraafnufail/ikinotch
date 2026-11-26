@@ -1,6 +1,7 @@
 import AppKit
 import Darwin
 import Foundation
+import ImageIO
 
 public struct NowPlayingInfo: Equatable {
     public let title: String
@@ -48,11 +49,13 @@ public final class NowPlayingMonitor: ObservableObject {
     private static let mrAppChanged = Notification.Name("kMRMediaRemoteNowPlayingApplicationDidChangeNotification")
 
     @Published public private(set) var currentTrack: NowPlayingInfo?
+    @Published public private(set) var artworkImage: NSImage?
 
     private let bridge = MediaRemoteBridge()
     private var localObservers: [NSObjectProtocol] = []
     private var distributedObservers: [NSObjectProtocol] = []
     private var lastKnownIsPlaying: Bool = false
+    private var lastArtworkHash: Int?
 
     public init(startListening: Bool = true) {
         if startListening {
@@ -125,11 +128,51 @@ public final class NowPlayingMonitor: ObservableObject {
                 guard let self else { return }
                 guard let dict, !dict.isEmpty else {
                     self.currentTrack = nil
+                    self.updateCachedArtwork(from: nil)
                     return
                 }
-                self.currentTrack = Self.parseMediaRemoteDictionary(dict, fallbackIsPlaying: self.lastKnownIsPlaying)
+                let parsed = Self.parseMediaRemoteDictionary(dict, fallbackIsPlaying: self.lastKnownIsPlaying)
+                self.currentTrack = parsed
+                self.updateCachedArtwork(from: parsed?.artworkData)
             }
         }
+    }
+
+    private func updateCachedArtwork(from data: Data?) {
+        guard let data, !data.isEmpty else {
+            lastArtworkHash = nil
+            if artworkImage != nil {
+                artworkImage = nil
+            }
+            return
+        }
+        let hash = data.hashValue
+        guard hash != lastArtworkHash else { return }
+        lastArtworkHash = hash
+
+        // Decode & downsample once off the main thread (max 128px) to keep memory & CPU minimal
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let image = Self.downsampledImage(from: data, maxDimension: 128)
+            DispatchQueue.main.async {
+                guard let self, self.lastArtworkHash == hash else { return }
+                self.artworkImage = image
+            }
+        }
+    }
+
+    private static func downsampledImage(from data: Data, maxDimension: CGFloat) -> NSImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
+            return NSImage(data: data)
+        }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxDimension,
+            kCGImageSourceCreateThumbnailWithTransform: true
+        ]
+        if let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) {
+            return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+        }
+        return NSImage(data: data)
     }
 
     // MARK: - Playback Controls (System-Wide: Browser, Music, Spotify, VLC, etc.)

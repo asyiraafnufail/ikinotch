@@ -166,11 +166,13 @@ final class IkiNotchAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 DispatchQueue.main.async {
+                    self?.syncOptionalMonitors()
                     self?.toggleVisibilityMenuItem?.title = (self?.settings.isNotchVisible == true) ? "Hide Notch" : "Show Notch"
                     self?.updatePanelVisibilityAndFrame()
                 }
             }
             .store(in: &cancellables)
+        syncOptionalMonitors()
 
         controller.$displayState
             .receive(on: DispatchQueue.main)
@@ -200,6 +202,19 @@ final class IkiNotchAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
                 self?.handleSpaceOrAppTransition()
             }
             .store(in: &cancellables)
+    }
+
+    private func syncOptionalMonitors() {
+        if settings.showCapsLockIndicator {
+            capsLockMonitor.start()
+        } else {
+            capsLockMonitor.stop()
+        }
+        if settings.showNowPlaying || settings.idleStyle == .smartStatus {
+            nowPlayingMonitor.start()
+        } else {
+            nowPlayingMonitor.stop()
+        }
     }
 
     private func handleSpaceOrAppTransition() {

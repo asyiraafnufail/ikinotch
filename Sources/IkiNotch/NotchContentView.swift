@@ -448,7 +448,7 @@ struct NotchContentView: View {
                 HStack(spacing: 8) {
                     if let track = nowPlaying.currentTrack {
                         ZStack {
-                            if let data = track.artworkData, let nsImage = NSImage(data: data) {
+                            if let nsImage = nowPlaying.artworkImage {
                                 Image(nsImage: nsImage)
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
@@ -767,21 +767,21 @@ struct NotchContentView: View {
         service.perform(withItems: urls)
     }
 
-    // MARK: - Now Playing Card
+    // MARK: - Now Playing Card (Full Media Tab, Centered Text)
 
     private var nowPlayingCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        Group {
             if let track = nowPlaying.currentTrack {
-                HStack(spacing: 10) {
+                HStack(spacing: 16) {
                     ZStack {
-                        if let data = track.artworkData, let nsImage = NSImage(data: data) {
+                        if let nsImage = nowPlaying.artworkImage {
                             Image(nsImage: nsImage)
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
-                                .frame(width: 40, height: 40)
-                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                .frame(width: 72, height: 72)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         } else {
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
                                 .fill(
                                     LinearGradient(
                                         colors: [
@@ -792,76 +792,76 @@ struct NotchContentView: View {
                                         endPoint: .bottomTrailing
                                     )
                                 )
-                                .frame(width: 40, height: 40)
+                                .frame(width: 72, height: 72)
                             Image(systemName: track.isPlaying ? "music.note" : "pause.fill")
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(.system(size: 24, weight: .semibold))
                                 .foregroundColor(.white)
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(track.title)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
-                        Text(track.artist)
-                            .font(.system(size: 10.5))
-                            .foregroundColor(.white.opacity(0.65))
-                            .lineLimit(1)
-                        Text(track.isPlaying ? "Playing" : "Paused")
-                            .font(.system(size: 9.5, weight: .medium))
-                            .foregroundColor(.white.opacity(0.42))
-                            .lineLimit(1)
+                    VStack(alignment: .center, spacing: 6) {
+                        VStack(alignment: .center, spacing: 2) {
+                            Text(track.title)
+                                .font(.system(size: 13.5, weight: .semibold))
+                                .foregroundColor(.white)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(1)
+                            Text(track.artist)
+                                .font(.system(size: 11.5))
+                                .foregroundColor(.white.opacity(0.65))
+                                .multilineTextAlignment(.center)
+                                .lineLimit(1)
+                        }
+
+                        HStack(spacing: 22) {
+                            Button { nowPlaying.previousTrack() } label: {
+                                Image(systemName: "backward.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.white.opacity(0.85))
+                                    .frame(width: 28, height: 28)
+                                    .contentShape(Circle())
+                            }
+                            .buttonStyle(NotchPressButtonStyle())
+
+                            Button { nowPlaying.togglePlayPause() } label: {
+                                Image(systemName: track.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundColor(.white)
+                                    .contentShape(Circle())
+                            }
+                            .buttonStyle(NotchPressButtonStyle())
+
+                            Button { nowPlaying.nextTrack() } label: {
+                                Image(systemName: "forward.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.white.opacity(0.85))
+                                    .frame(width: 28, height: 28)
+                                    .contentShape(Circle())
+                            }
+                            .buttonStyle(NotchPressButtonStyle())
+                        }
                     }
-                    Spacer(minLength: 0)
+                    .frame(maxWidth: .infinity)
                 }
-
-                HStack(spacing: 16) {
-                    Spacer(minLength: 0)
-                    Button { nowPlaying.previousTrack() } label: {
-                        Image(systemName: "backward.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.85))
-                    }
-                    .buttonStyle(.plain)
-
-                    Button { nowPlaying.togglePlayPause() } label: {
-                        Image(systemName: track.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                            .font(.system(size: 22))
-                            .foregroundColor(.white)
-                    }
-                    .buttonStyle(.plain)
-
-                    Button { nowPlaying.nextTrack() } label: {
-                        Image(systemName: "forward.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.85))
-                    }
-                    .buttonStyle(.plain)
-                    Spacer(minLength: 0)
-                }
+                .padding(.horizontal, 14)
             } else {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "music.note")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.65))
-                        Text("Now Playing")
-                            .font(.system(size: 11.5, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.85))
-                    }
-
+                VStack(alignment: .center, spacing: 6) {
+                    Image(systemName: "music.note")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.65))
+                    Text("Now Playing")
+                        .font(.system(size: 12.5, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.88))
                     Text("Play audio or video in Browser, Spotify, or Music.")
-                        .font(.system(size: 10.5))
+                        .font(.system(size: 11))
                         .foregroundColor(.white.opacity(0.5))
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Spacer(minLength: 0)
+                        .multilineTextAlignment(.center)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             }
         }
         .padding(10)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .background(Color.white.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
