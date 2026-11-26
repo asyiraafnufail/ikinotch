@@ -239,10 +239,11 @@ struct NotchContentView: View {
     @ViewBuilder
     private var idleBatteryBadge: some View {
         if battery.status.hasBattery {
-            HStack(spacing: 3) {
-                Image(systemName: battery.status.symbolName)
-                    .font(.system(size: 10))
-                    .foregroundColor(batteryTint)
+            HStack(spacing: 4) {
+                BatteryIconView(
+                    percentage: battery.status.percentage,
+                    isCharging: battery.status.isCharging
+                )
                 Text("\(battery.status.percentage)%")
                     .font(.system(size: 10.5, weight: .medium, design: .rounded))
                     .monospacedDigit()
@@ -298,10 +299,11 @@ struct NotchContentView: View {
                 }
 
                 if settings.showBattery && battery.status.hasBattery {
-                    HStack(spacing: 4) {
-                        Image(systemName: battery.status.symbolName)
-                            .font(.system(size: 11.5))
-                            .foregroundColor(batteryTint)
+                    HStack(spacing: 5) {
+                        BatteryIconView(
+                            percentage: battery.status.percentage,
+                            isCharging: battery.status.isCharging
+                        )
                         Text("\(battery.status.percentage)%")
                             .font(.system(size: 11, weight: .semibold, design: .rounded))
                             .monospacedDigit()
@@ -1005,5 +1007,54 @@ private struct NotchPressButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
             .opacity(configuration.isPressed ? 0.78 : 1.0)
             .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
+    }
+}
+
+private struct BatteryIconView: View {
+    let percentage: Int
+    let isCharging: Bool
+
+    private var fillFraction: CGFloat {
+        CGFloat(min(100, max(0, percentage))) / 100.0
+    }
+
+    private var fillColor: Color {
+        if isCharging {
+            return Color(red: 0.24, green: 0.85, blue: 0.42)
+        }
+        if percentage <= 15 {
+            return Color(red: 0.98, green: 0.30, blue: 0.26)
+        }
+        if percentage <= 25 {
+            return Color(red: 1.0, green: 0.72, blue: 0.22)
+        }
+        return Color.white.opacity(0.92)
+    }
+
+    var body: some View {
+        HStack(spacing: 1) {
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 2.5, style: .continuous)
+                    .stroke(Color.white.opacity(0.55), lineWidth: 1)
+                    .frame(width: 20, height: 10.5)
+
+                RoundedRectangle(cornerRadius: 1.3, style: .continuous)
+                    .fill(fillColor)
+                    .frame(width: max(1.5, 16.0 * fillFraction), height: 6.5)
+                    .padding(.leading, 2)
+
+                if isCharging {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 7.5, weight: .black))
+                        .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.75), radius: 0.8, x: 0, y: 0)
+                        .frame(width: 20, height: 10.5)
+                }
+            }
+
+            RoundedRectangle(cornerRadius: 0.8, style: .continuous)
+                .fill(Color.white.opacity(0.55))
+                .frame(width: 1.5, height: 4)
+        }
     }
 }
