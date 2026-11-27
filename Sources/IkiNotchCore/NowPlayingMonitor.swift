@@ -227,6 +227,27 @@ public final class NowPlayingMonitor: ObservableObject {
         }
     }
 
+    public func seek(to seconds: Double) {
+        guard bridge.isAvailable, let track = currentTrack, track.duration > 0 else { return }
+        let clamped = min(track.duration, max(0, seconds))
+        bridge.setElapsedTime(clamped)
+        currentTrack = NowPlayingInfo(
+            title: track.title,
+            artist: track.artist,
+            album: track.album,
+            sourceName: track.sourceName,
+            isPlaying: track.isPlaying,
+            artworkData: track.artworkData,
+            duration: track.duration,
+            elapsedTime: clamped,
+            playbackRate: track.playbackRate,
+            elapsedTimestamp: Date()
+        )
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { [weak self] in
+            self?.refreshFromMediaRemote()
+        }
+    }
+
     // MARK: - Parsers (Pure & Unit-Testable)
 
     public static func parseMediaRemoteDictionary(
@@ -340,6 +361,7 @@ private final class MediaRemoteBridge {
     private typealias GetInfoFn = @convention(c) (DispatchQueue, @escaping @convention(block) (NSDictionary?) -> Void) -> Void
     private typealias GetIsPlayingFn = @convention(c) (DispatchQueue, @escaping @convention(block) (Bool) -> Void) -> Void
     private typealias SendCommandFn = @convention(c) (UInt32, AnyObject?) -> Bool
+    private typealias SetElapsedTimeFn = @convention(c) (Double) -> Void
 
     private let handle: UnsafeMutableRawPointer?
     private let registerFn: RegisterFn?
@@ -347,6 +369,7 @@ private final class MediaRemoteBridge {
     private let getInfoFn: GetInfoFn?
     private let getIsPlayingFn: GetIsPlayingFn?
     private let sendCommandFn: SendCommandFn?
+    private let setElapsedTimeFn: SetElapsedTimeFn?
 
     var isAvailable: Bool {
         registerFn != nil && getInfoFn != nil
@@ -368,12 +391,15 @@ private final class MediaRemoteBridge {
                 .map { unsafeBitCast($0, to: GetIsPlayingFn.self) }
             self.sendCommandFn = dlsym(h, "MRMediaRemoteSendCommand")
                 .map { unsafeBitCast($0, to: SendCommandFn.self) }
+            self.setElapsedTimeFn = dlsym(h, "MRMediaRemoteSetElapsedTime")
+                .map { unsafeBitCast($0, to: SetElapsedTimeFn.self) }
         } else {
             self.registerFn = nil
             self.unregisterFn = nil
             self.getInfoFn = nil
             self.getIsPlayingFn = nil
             self.sendCommandFn = nil
+            self.setElapsedTimeFn = nil
         }
     }
 
@@ -407,5 +433,9 @@ private final class MediaRemoteBridge {
 
     func sendCommand(_ command: Command) -> Bool {
         sendCommandFn?(command.rawValue, nil) ?? false
+    }
+
+    func setElapsedTime(_ seconds: Double) {
+        setElapsedTimeFn?(seconds)
     }
 }

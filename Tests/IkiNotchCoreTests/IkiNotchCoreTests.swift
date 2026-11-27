@@ -162,4 +162,97 @@ final class IkiNotchCoreTests: XCTestCase {
         XCTAssertEqual(SystemStatsProvider.formatSpeed(204_800), "200 KB/s")
         XCTAssertEqual(SystemStatsProvider.formatSpeed(2_621_440), "2.5 MB/s")
     }
+
+    func testNowPlayingDurationAndElapsedEstimation() {
+        let baseDate = Date(timeIntervalSince1970: 1_700_000_000)
+        let playingTrack = NowPlayingInfo(
+            title: "Test Track",
+            artist: "Tester",
+            album: "",
+            sourceName: "Music",
+            isPlaying: true,
+            duration: 185,
+            elapsedTime: 30,
+            playbackRate: 1.0,
+            elapsedTimestamp: baseDate
+        )
+        XCTAssertEqual(playingTrack.estimatedElapsed(at: baseDate.addingTimeInterval(15)), 45, accuracy: 0.01)
+        XCTAssertEqual(playingTrack.estimatedElapsed(at: baseDate.addingTimeInterval(500)), 185, accuracy: 0.01)
+
+        let pausedTrack = NowPlayingInfo(
+            title: "Paused Track",
+            artist: "Tester",
+            album: "",
+            sourceName: "Music",
+            isPlaying: false,
+            duration: 185,
+            elapsedTime: 30,
+            playbackRate: 0.0,
+            elapsedTimestamp: baseDate
+        )
+        XCTAssertEqual(pausedTrack.estimatedElapsed(at: baseDate.addingTimeInterval(40)), 30, accuracy: 0.01)
+
+        XCTAssertEqual(NowPlayingInfo.formatDuration(65), "1:05")
+        XCTAssertEqual(NowPlayingInfo.formatDuration(3661), "1:01:01")
+    }
+
+    func testSettingsPersistenceForNewPreferences() {
+        let suiteName = "com.ikinotch.tests.prefs.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let writer = NotchSettings(defaults: defaults)
+        writer.batteryDisplayStyle = .percentOnly
+        writer.showWiFiName = false
+        writer.displayTarget = .activeScreen
+        writer.globalShortcutPreset = .optionSpace
+        writer.showMenuBarIcon = false
+        writer.timerSoundEnabled = false
+        writer.showPrivacyIndicators = false
+
+        let reader = NotchSettings(defaults: defaults)
+        XCTAssertEqual(reader.batteryDisplayStyle, .percentOnly)
+        XCTAssertFalse(reader.showWiFiName)
+        XCTAssertEqual(reader.displayTarget, .activeScreen)
+        XCTAssertEqual(reader.globalShortcutPreset, .optionSpace)
+        XCTAssertFalse(reader.showMenuBarIcon)
+        XCTAssertFalse(reader.timerSoundEnabled)
+        XCTAssertFalse(reader.showPrivacyIndicators)
+    }
+
+    func testPillGeometryAlignmentMatchesMenuBar() {
+        let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)
+        let collapsed = NotchGeometry.metrics(
+            for: .collapsed,
+            preset: .standard,
+            customWidth: 194,
+            customHeight: 31,
+            menuBarHeight: 25,
+            shapeStyle: .pill
+        )
+        let expanded = NotchGeometry.metrics(
+            for: .expanded,
+            preset: .standard,
+            customWidth: 194,
+            customHeight: 31,
+            menuBarHeight: 25,
+            shapeStyle: .pill
+        )
+        XCTAssertEqual(collapsed.topMargin, 2)
+        XCTAssertEqual(expanded.topMargin, 2)
+        XCTAssertEqual(collapsed.height, 20)
+
+        let frame = NotchGeometry.panelFrame(
+            for: .collapsed,
+            screenFrame: screen,
+            preset: .standard,
+            customWidth: 194,
+            customHeight: 31,
+            menuBarHeight: 25,
+            shapeStyle: .pill,
+            horizontalOffset: 0,
+            useExpandedWindowBounds: false
+        )
+        XCTAssertEqual(frame.maxY, screen.maxY, accuracy: 0.01)
+    }
 }

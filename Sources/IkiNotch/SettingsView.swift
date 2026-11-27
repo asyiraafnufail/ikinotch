@@ -42,7 +42,16 @@ struct SettingsView: View {
             }
 
             Section("Interaction") {
-                Toggle("Global Shortcut (⌃⌥N)", isOn: $settings.enableGlobalShortcut)
+                Toggle("Global Shortcut", isOn: $settings.enableGlobalShortcut)
+
+                if settings.enableGlobalShortcut {
+                    Picker("Shortcut Key", selection: $settings.globalShortcutPreset) {
+                        ForEach(GlobalShortcutPreset.allCases) { preset in
+                            Text(preset.displayName).tag(preset)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
 
                 Picker("Trigger Mode", selection: $settings.triggerMode) {
                     ForEach(NotchTriggerMode.allCases) { mode in

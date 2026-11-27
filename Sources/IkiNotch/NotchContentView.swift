@@ -139,7 +139,7 @@ struct NotchContentView: View {
                             controller.handleNotchTapped()
                         }
                         .contextMenu {
-                            Button("Expand Notch (⌃⌥N)") {
+                            Button("Expand Notch (\(settings.globalShortcutPreset.displayName))") {
                                 controller.expandLocked()
                             }
                             Button(settings.shapeStyle == .notch ? "Switch to Pill Style" : "Switch to Notch Style") {
@@ -1588,13 +1588,24 @@ struct NotchContentView: View {
 
                                     GeometryReader { geo in
                                         ZStack(alignment: .leading) {
-                                            Capsule().fill(Color.white.opacity(0.14))
                                             Capsule()
-                                                .fill(Color.white.opacity(0.85))
-                                                .frame(width: max(3, geo.size.width * ratio))
+                                                .fill(Color.white.opacity(0.14))
+                                                .frame(height: 4)
+                                            Capsule()
+                                                .fill(Color.white.opacity(0.88))
+                                                .frame(width: max(4, geo.size.width * ratio), height: 4)
                                         }
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                                        .contentShape(Rectangle())
+                                        .gesture(
+                                            DragGesture(minimumDistance: 0)
+                                                .onEnded { value in
+                                                    let pct = min(1.0, max(0.0, value.location.x / max(1, geo.size.width)))
+                                                    nowPlaying.seek(to: track.duration * pct)
+                                                }
+                                        )
                                     }
-                                    .frame(height: 3.5)
+                                    .frame(height: 14)
 
                                     Text(NowPlayingInfo.formatDuration(track.duration))
                                         .font(.system(size: 9, weight: .medium, design: .rounded))

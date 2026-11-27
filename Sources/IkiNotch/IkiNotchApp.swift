@@ -277,7 +277,10 @@ final class IkiNotchAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             nowPlayingMonitor.stop()
         }
         if settings.enableGlobalShortcut {
-            hotKeyManager.start()
+            hotKeyManager.start(
+                keyCode: settings.globalShortcutPreset.keyCode,
+                modifiers: settings.globalShortcutPreset.modifiers
+            )
         } else {
             hotKeyManager.stop()
         }

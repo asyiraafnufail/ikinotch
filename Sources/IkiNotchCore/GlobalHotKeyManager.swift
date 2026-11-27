@@ -10,6 +10,8 @@ public final class GlobalHotKeyManager {
 
     private var eventHandlerRef: EventHandlerRef?
     private var hotKeyRef: EventHotKeyRef?
+    private var activeKeyCode: UInt32?
+    private var activeModifiers: UInt32?
     public var onHotKeyPressed: (() -> Void)?
 
     public init() {}
@@ -18,8 +20,11 @@ public final class GlobalHotKeyManager {
         stop()
     }
 
-    public func start() {
-        guard hotKeyRef == nil else { return }
+    public func start(keyCode: UInt32 = UInt32(kVK_ANSI_N), modifiers: UInt32 = UInt32(controlKey | optionKey)) {
+        if hotKeyRef != nil, activeKeyCode == keyCode, activeModifiers == modifiers {
+            return
+        }
+        stop()
 
         var eventSpec = EventTypeSpec(
             eventClass: OSType(kEventClassKeyboard),
@@ -65,8 +70,6 @@ public final class GlobalHotKeyManager {
         }
 
         let hotKeyID = EventHotKeyID(signature: Self.signature, id: Self.hotKeyIDValue)
-        let modifiers = UInt32(controlKey | optionKey)
-        let keyCode = UInt32(kVK_ANSI_N)
 
         let regStatus = RegisterEventHotKey(
             keyCode,
@@ -76,7 +79,10 @@ public final class GlobalHotKeyManager {
             0,
             &hotKeyRef
         )
-        if regStatus != noErr {
+        if regStatus == noErr {
+            activeKeyCode = keyCode
+            activeModifiers = modifiers
+        } else {
             stop()
         }
     }
@@ -90,5 +96,7 @@ public final class GlobalHotKeyManager {
             RemoveEventHandler(eventHandlerRef)
             self.eventHandlerRef = nil
         }
+        activeKeyCode = nil
+        activeModifiers = nil
     }
 }

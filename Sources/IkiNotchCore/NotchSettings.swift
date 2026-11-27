@@ -128,6 +128,41 @@ public enum BatteryDisplayStyle: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+public enum GlobalShortcutPreset: String, CaseIterable, Identifiable, Codable {
+    case ctrlOptionN = "ctrlOptionN"
+    case optionSpace = "optionSpace"
+    case ctrlOptionSpace = "ctrlOptionSpace"
+    case cmdShiftN = "cmdShiftN"
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .ctrlOptionN: return "⌃⌥N"
+        case .optionSpace: return "⌥Space"
+        case .ctrlOptionSpace: return "⌃⌥Space"
+        case .cmdShiftN: return "⌘⇧N"
+        }
+    }
+
+    /// Carbon virtual keyCode
+    public var keyCode: UInt32 {
+        switch self {
+        case .ctrlOptionN, .cmdShiftN: return 0x2D // kVK_ANSI_N
+        case .optionSpace, .ctrlOptionSpace: return 0x31 // kVK_Space
+        }
+    }
+
+    /// Carbon modifier flags (cmdKey=0x0100, shiftKey=0x0200, optionKey=0x0800, controlKey=0x1000)
+    public var modifiers: UInt32 {
+        switch self {
+        case .ctrlOptionN, .ctrlOptionSpace: return 0x1000 | 0x0800
+        case .optionSpace: return 0x0800
+        case .cmdShiftN: return 0x0100 | 0x0200
+        }
+    }
+}
+
 public enum NotchDisplayTarget: String, CaseIterable, Identifiable, Codable {
     case primaryScreen = "primary"
     case activeScreen = "active"
@@ -177,6 +212,7 @@ public final class NotchSettings: ObservableObject {
         static let batteryDisplayStyle = "ikinotch.batteryDisplayStyle"
         static let showWiFiName = "ikinotch.showWiFiName"
         static let enableGlobalShortcut = "ikinotch.enableGlobalShortcut"
+        static let globalShortcutPreset = "ikinotch.globalShortcutPreset"
         static let showMenuBarIcon = "ikinotch.showMenuBarIcon"
         static let displayTarget = "ikinotch.displayTarget"
         static let timerSoundEnabled = "ikinotch.timerSoundEnabled"
@@ -257,6 +293,10 @@ public final class NotchSettings: ObservableObject {
 
     @Published public var enableGlobalShortcut: Bool {
         didSet { defaults.set(enableGlobalShortcut, forKey: Keys.enableGlobalShortcut) }
+    }
+
+    @Published public var globalShortcutPreset: GlobalShortcutPreset {
+        didSet { defaults.set(globalShortcutPreset.rawValue, forKey: Keys.globalShortcutPreset) }
     }
 
     @Published public var showMenuBarIcon: Bool {
@@ -368,6 +408,12 @@ public final class NotchSettings: ObservableObject {
         }
         self.showWiFiName = defaults.object(forKey: Keys.showWiFiName) as? Bool ?? true
         self.enableGlobalShortcut = defaults.object(forKey: Keys.enableGlobalShortcut) as? Bool ?? true
+        if let rawShortcut = defaults.string(forKey: Keys.globalShortcutPreset),
+           let shortcut = GlobalShortcutPreset(rawValue: rawShortcut) {
+            self.globalShortcutPreset = shortcut
+        } else {
+            self.globalShortcutPreset = .ctrlOptionN
+        }
         self.showMenuBarIcon = defaults.object(forKey: Keys.showMenuBarIcon) as? Bool ?? true
         if let rawDisplay = defaults.string(forKey: Keys.displayTarget),
            let target = NotchDisplayTarget(rawValue: rawDisplay) {
