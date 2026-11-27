@@ -140,4 +140,14 @@ final class IkiNotchCoreTests: XCTestCase {
         shelf.clear()
         XCTAssertTrue(shelf.items.isEmpty)
     }
+
+    func testQuickTimerFormattingAndUptime() {
+        let timer = QuickTimerManager()
+        timer.selectPreset(minutes: 5)
+        XCTAssertEqual(timer.formattedRemaining, "05:00")
+        XCTAssertFalse(timer.isRunning)
+
+        XCTAssertEqual(SystemStatsProvider.formatUptime(9000), "2h 30m")
+        XCTAssertEqual(SystemStatsProvider.formatUptime(90000), "1d 1h")
+    }
 }

@@ -20,6 +20,9 @@ final class IkiNotchAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
     private let keepAwakeManager = KeepAwakeManager()
     private let fileShelfStore = FileShelfStore()
     private let systemControls = SystemControlsManager()
+    private let quickTimer = QuickTimerManager()
+    private let scratchpad = ScratchpadStore()
+    private let systemStats = SystemStatsProvider()
 
     private var cancellables = Set<AnyCancellable>()
     private var toggleVisibilityMenuItem: NSMenuItem?
@@ -129,7 +132,18 @@ final class IkiNotchAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             wifi: wifiMonitor,
             keepAwake: keepAwakeManager,
             fileShelf: fileShelfStore,
-            systemControls: systemControls
+            systemControls: systemControls,
+            quickTimer: quickTimer,
+            scratchpad: scratchpad,
+            systemStats: systemStats,
+            onSetKeyFocusAllowed: { [weak self] allowed in
+                guard let panel = self?.notchPanel else { return }
+                panel.allowKeyFocus = allowed
+                if allowed {
+                    panel.makeKey()
+                    NSApp.activate(ignoringOtherApps: true)
+                }
+            }
         )
 
         let host = NotchHostView(rootView: rootView)

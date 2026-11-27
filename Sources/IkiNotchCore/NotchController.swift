@@ -57,13 +57,19 @@ public final class NotchController: ObservableObject {
         hoverWorkItem?.cancel()
         hoverWorkItem = nil
 
-        guard !isLockedExpanded, displayState != .collapsed else { return }
+        guard displayState != .collapsed else { return }
+        if settings.triggerMode == .clickOnly && isLockedExpanded {
+            return
+        }
 
         collapseWorkItem?.cancel()
         // Symmetrical delay for hover Out matching hover In
         let delay = max(0.02, settings.hoverDelay)
         let work = DispatchWorkItem { [weak self] in
-            guard let self, !self.isHovered, !self.isLockedExpanded else { return }
+            guard let self, !self.isHovered else { return }
+            if self.settings.triggerMode == .clickOnly && self.isLockedExpanded {
+                return
+            }
             self.transition(to: .collapsed, locked: false)
         }
         collapseWorkItem = work
@@ -88,6 +94,10 @@ public final class NotchController: ObservableObject {
         hoverWorkItem?.cancel()
         collapseWorkItem?.cancel()
         transition(to: .expanded, locked: true)
+    }
+
+    public func setLockedExpanded(_ locked: Bool) {
+        isLockedExpanded = (displayState == .expanded) ? locked : false
     }
 
     public func collapseImmediately() {

@@ -7,6 +7,10 @@ private enum ExpandedTab: Equatable {
     case home
     case media
     case tray
+    case notes
+    case timer
+    case stats
+    case tools
 }
 
 struct NotchContentView: View {
@@ -20,9 +24,15 @@ struct NotchContentView: View {
     @ObservedObject var keepAwake: KeepAwakeManager
     @ObservedObject var fileShelf: FileShelfStore
     @ObservedObject var systemControls: SystemControlsManager
+    @ObservedObject var quickTimer: QuickTimerManager
+    @ObservedObject var scratchpad: ScratchpadStore
+    @ObservedObject var systemStats: SystemStatsProvider
+    var onSetKeyFocusAllowed: ((Bool) -> Void)?
 
     @State private var selectedTab: ExpandedTab = .home
     @State private var isDropTargeted: Bool = false
+    @State private var copiedNoteFeedback: Bool = false
+    @State private var pickedHexFeedback: String?
 
     private var hasCards: Bool {
         true
@@ -162,7 +172,18 @@ struct NotchContentView: View {
 
         case .smartStatus:
             HStack(spacing: 8) {
-                if let track = nowPlaying.currentTrack, track.isPlaying {
+                if quickTimer.isRunning {
+                    HStack(spacing: 4) {
+                        Image(systemName: "timer")
+                            .font(.system(size: 9.5, weight: .bold))
+                            .foregroundColor(Color(red: 1.0, green: 0.65, blue: 0.20))
+                        Text(quickTimer.formattedRemaining)
+                            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundColor(Color(red: 1.0, green: 0.78, blue: 0.35))
+                            .lineLimit(1)
+                    }
+                } else if let track = nowPlaying.currentTrack, track.isPlaying {
                     HStack(spacing: 4) {
                         Circle()
                             .fill(Color(hue: track.accentHue, saturation: 0.78, brightness: 0.92))
@@ -252,17 +273,17 @@ struct NotchContentView: View {
 
     private var expandedView: some View {
         VStack(spacing: 10) {
-            // Top bar: all elements centered cleanly
+            // Top bar: all elements centered cleanly with fixed-width icon tabs (0px shift across tabs)
             HStack(spacing: 10) {
                 if settings.showClock {
                     TimelineView(.everyMinute) { context in
                         HStack(alignment: .firstTextBaseline, spacing: 5) {
                             Text(Self.timeFormatter.string(from: context.date))
-                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
                                 .monospacedDigit()
                                 .foregroundColor(.white)
                             Text(Self.shortDateFormatter.string(from: context.date))
-                                .font(.system(size: 11, weight: .medium))
+                                .font(.system(size: 10.5, weight: .medium))
                                 .foregroundColor(.white.opacity(0.6))
                         }
                         .lineLimit(1)
@@ -270,17 +291,29 @@ struct NotchContentView: View {
                     }
                 }
 
+                // Fixed-width icon tab bar (never changes width when switching tabs)
                 HStack(spacing: 2) {
-                    tabPill(title: "Home", tab: .home)
+                    tabPill(icon: "house.fill", title: "Home", tab: .home)
                     if settings.showNowPlaying {
-                        tabPill(title: "Media", tab: .media)
+                        tabPill(icon: "music.note", title: "Media", tab: .media)
                     }
                     if settings.showFileShelf {
                         tabPill(
+                            icon: "tray.fill",
                             title: fileShelf.items.isEmpty ? "Tray" : "Tray (\(fileShelf.items.count))",
-                            tab: .tray
+                            tab: .tray,
+                            hasBadge: !fileShelf.items.isEmpty
                         )
                     }
+                    tabPill(icon: "note.text", title: "Notes", tab: .notes)
+                    tabPill(
+                        icon: "timer",
+                        title: quickTimer.isRunning ? "Timer (\(quickTimer.formattedRemaining))" : "Timer",
+                        tab: .timer,
+                        hasBadge: quickTimer.isRunning
+                    )
+                    tabPill(icon: "chart.bar.fill", title: "Stats", tab: .stats)
+                    tabPill(icon: "wrench.and.screwdriver.fill", title: "Tools", tab: .tools)
                 }
                 .padding(2)
                 .background(Color.white.opacity(0.08))
@@ -291,26 +324,26 @@ struct NotchContentView: View {
                 }
 
                 if settings.showBattery && battery.status.hasBattery {
-                    HStack(spacing: 5) {
+                    HStack(spacing: 4) {
                         BatteryIconView(
                             percentage: battery.status.percentage,
                             isCharging: battery.status.isCharging
                         )
                         Text("\(battery.status.percentage)%")
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                             .monospacedDigit()
                             .foregroundColor(.white.opacity(0.92))
                         if let timeStr = battery.status.formattedTimeRemaining {
                             Text("· \(timeStr)")
-                                .font(.system(size: 10, weight: .medium, design: .rounded))
+                                .font(.system(size: 9.5, weight: .medium, design: .rounded))
                                 .monospacedDigit()
-                                .foregroundColor(.white.opacity(0.58))
+                                .foregroundColor(.white.opacity(0.55))
                         }
                     }
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
                     .padding(.horizontal, 7)
-                    .padding(.vertical, 3.5)
+                    .padding(.vertical, 4)
                     .background(Color.white.opacity(0.09))
                     .clipShape(Capsule())
                 }
@@ -320,13 +353,13 @@ struct NotchContentView: View {
                         keepAwake.toggle()
                     } label: {
                         Image(systemName: keepAwake.isActive ? "cup.and.saucer.fill" : "cup.and.saucer")
-                            .font(.system(size: 11.5))
+                            .font(.system(size: 11))
                             .foregroundColor(
                                 keepAwake.isActive
                                     ? Color(red: 1.0, green: 0.78, blue: 0.25)
                                     : .white.opacity(0.78)
                             )
-                            .frame(width: 26, height: 26)
+                            .frame(width: 24, height: 24)
                             .background(
                                 keepAwake.isActive
                                     ? Color(red: 1.0, green: 0.75, blue: 0.20).opacity(0.22)
@@ -343,9 +376,9 @@ struct NotchContentView: View {
                         controller.onOpenSettings?()
                     } label: {
                         Image(systemName: "gearshape.fill")
-                            .font(.system(size: 11.5))
+                            .font(.system(size: 11))
                             .foregroundColor(.white.opacity(0.78))
-                            .frame(width: 26, height: 26)
+                            .frame(width: 24, height: 24)
                             .background(Color.white.opacity(0.10))
                             .clipShape(Circle())
                             .contentShape(Circle())
@@ -355,6 +388,7 @@ struct NotchContentView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .center)
+            .frame(height: 28)
 
             Group {
                 switch selectedTab {
@@ -364,6 +398,14 @@ struct NotchContentView: View {
                     nowPlayingCard
                 case .tray:
                     fileShelfCard
+                case .notes:
+                    notesCard
+                case .timer:
+                    timerCard
+                case .stats:
+                    statsCard
+                case .tools:
+                    toolsCard
                 }
             }
         }
@@ -375,6 +417,12 @@ struct NotchContentView: View {
             nowPlaying.refreshFromMediaRemote()
             wifi.refresh()
             systemControls.refresh()
+            if selectedTab == .stats {
+                systemStats.refresh()
+            }
+            if selectedTab == .notes {
+                onSetKeyFocusAllowed?(true)
+            }
             if calendar.authState == .authorized {
                 calendar.refreshNextEvent()
             }
@@ -383,6 +431,15 @@ struct NotchContentView: View {
             }
             if !settings.showNowPlaying && selectedTab == .media {
                 selectedTab = .home
+            }
+        }
+        .onDisappear {
+            onSetKeyFocusAllowed?(false)
+        }
+        .onChange(of: selectedTab) { tab in
+            onSetKeyFocusAllowed?(tab == .notes)
+            if tab == .stats {
+                systemStats.refresh()
             }
         }
     }
@@ -607,20 +664,378 @@ struct NotchContentView: View {
         .buttonStyle(NotchPressButtonStyle())
     }
 
-    private func tabPill(title: String, tab: ExpandedTab) -> some View {
-        Button {
+    private func tabPill(icon: String, title: String, tab: ExpandedTab, hasBadge: Bool = false) -> some View {
+        let isSelected = selectedTab == tab
+        return Button {
             selectedTab = tab
         } label: {
-            Text(title)
-                .font(.system(size: 10.5, weight: .semibold))
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-                .foregroundColor(selectedTab == tab ? .black : .white.opacity(0.78))
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: icon)
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .frame(width: 26, height: 22)
+                    .foregroundColor(isSelected ? .black : .white.opacity(0.72))
+                    .background(isSelected ? Color.white : Color.clear)
+                    .clipShape(Capsule())
+
+                if hasBadge && !isSelected {
+                    Circle()
+                        .fill(Color(red: 1.0, green: 0.72, blue: 0.22))
+                        .frame(width: 5, height: 5)
+                        .offset(x: -3, y: 2)
+                }
+            }
+            .frame(width: 26, height: 22)
+            .contentShape(Capsule())
+        }
+        .buttonStyle(NotchPressButtonStyle())
+        .help(title)
+    }
+
+    // MARK: - Notes Card (Quick Scratchpad)
+
+    private var notesCard: some View {
+        VStack(spacing: 6) {
+            HStack {
+                Label("Quick Notes", systemImage: "note.text")
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.72))
+                Spacer()
+                Button {
+                    scratchpad.copyToClipboard()
+                    copiedNoteFeedback = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                        copiedNoteFeedback = false
+                    }
+                } label: {
+                    Text(copiedNoteFeedback ? "Copied!" : "Copy")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(copiedNoteFeedback ? Color(red: 0.24, green: 0.85, blue: 0.42) : .white.opacity(0.85))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Capsule())
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(NotchPressButtonStyle())
+
+                Button {
+                    scratchpad.clear()
+                } label: {
+                    Text("Clear")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.white.opacity(0.62))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.white.opacity(0.08))
+                        .clipShape(Capsule())
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(NotchPressButtonStyle())
+            }
+
+            ZStack(alignment: .topLeading) {
+                if scratchpad.text.isEmpty {
+                    Text("Type quick notes, links, or to-dos here (auto-saved)...")
+                        .font(.system(size: 11.5))
+                        .foregroundColor(.white.opacity(0.35))
+                        .padding(.top, 5)
+                        .padding(.leading, 6)
+                        .allowsHitTesting(false)
+                }
+                TextEditor(text: $scratchpad.text)
+                    .font(.system(size: 11.5))
+                    .foregroundColor(.white.opacity(0.92))
+                    .scrollContentBackground(.hidden)
+                    .background(Color.clear)
+                    .padding(2)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black.opacity(0.35))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.white.opacity(0.07))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    // MARK: - Timer Card (Pomodoro / Countdown)
+
+    private var timerCard: some View {
+        HStack(spacing: 16) {
+            VStack(alignment: .center, spacing: 6) {
+                Text(quickTimer.formattedRemaining)
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundColor(
+                        quickTimer.didFinishRecently
+                            ? Color(red: 0.24, green: 0.85, blue: 0.42)
+                            : .white
+                    )
+
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.white.opacity(0.12))
+                        Capsule()
+                            .fill(
+                                quickTimer.isRunning
+                                    ? Color(red: 1.0, green: 0.65, blue: 0.20)
+                                    : Color.white.opacity(0.55)
+                            )
+                            .frame(width: max(4, geo.size.width * quickTimer.progress))
+                    }
+                }
+                .frame(width: 140, height: 5)
+            }
+            .frame(maxWidth: .infinity)
+
+            VStack(spacing: 8) {
+                HStack(spacing: 6) {
+                    ForEach([5, 15, 25, 45], id: \.self) { mins in
+                        let isCurrent = quickTimer.totalSeconds == mins * 60
+                        Button {
+                            quickTimer.selectPreset(minutes: mins)
+                        } label: {
+                            Text("\(mins)m")
+                                .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                                .foregroundColor(isCurrent ? .black : .white.opacity(0.8))
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 4)
+                                .background(isCurrent ? Color.white : Color.white.opacity(0.10))
+                                .clipShape(Capsule())
+                                .contentShape(Capsule())
+                        }
+                        .buttonStyle(NotchPressButtonStyle())
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    Button {
+                        quickTimer.toggleStartPause()
+                    } label: {
+                        Label(
+                            quickTimer.isRunning ? "Pause" : "Start",
+                            systemImage: quickTimer.isRunning ? "pause.fill" : "play.fill"
+                        )
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 96, height: 28)
+                        .background(
+                            quickTimer.isRunning
+                                ? Color(red: 1.0, green: 0.58, blue: 0.16)
+                                : Color(red: 0.04, green: 0.52, blue: 1.0)
+                        )
+                        .clipShape(Capsule())
+                        .contentShape(Capsule())
+                    }
+                    .buttonStyle(NotchPressButtonStyle())
+
+                    Button {
+                        quickTimer.reset()
+                    } label: {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.82))
+                            .frame(width: 28, height: 28)
+                            .background(Color.white.opacity(0.10))
+                            .clipShape(Circle())
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(NotchPressButtonStyle())
+                    .help("Reset Timer")
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.white.opacity(0.07))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    // MARK: - Stats Card (On-Demand System Snapshot)
+
+    private var statsCard: some View {
+        let s = systemStats.snapshot
+        return VStack(spacing: 8) {
+            HStack(spacing: 10) {
+                statMeterTile(
+                    title: "Memory",
+                    value: String(format: "%.1f / %.0f GB", s.usedMemoryGB, s.totalMemoryGB),
+                    ratio: s.memoryRatio,
+                    tint: s.memoryRatio > 0.85 ? Color(red: 0.95, green: 0.32, blue: 0.28) : Color(red: 0.04, green: 0.52, blue: 1.0)
+                )
+                statMeterTile(
+                    title: "Disk Free",
+                    value: String(format: "%.0f / %.0f GB", s.freeDiskGB, s.totalDiskGB),
+                    ratio: s.diskUsedRatio,
+                    tint: s.diskUsedRatio > 0.88 ? Color(red: 1.0, green: 0.62, blue: 0.18) : Color(red: 0.24, green: 0.85, blue: 0.42)
+                )
+            }
+
+            HStack(spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "network")
+                        .font(.system(size: 10.5))
+                        .foregroundColor(.white.opacity(0.6))
+                    Text("IP: \(s.localIPAddress)")
+                        .font(.system(size: 10.5, weight: .medium, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.88))
+                        .lineLimit(1)
+                }
                 .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(selectedTab == tab ? Color.white : Color.clear)
-                .clipShape(Capsule())
-                .contentShape(Capsule())
+                .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
+                .background(Color.white.opacity(0.07))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                HStack(spacing: 6) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 10.5))
+                        .foregroundColor(.white.opacity(0.6))
+                    Text("Up: \(s.uptimeFormatted)")
+                        .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.88))
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 10)
+                .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
+                .background(Color.white.opacity(0.07))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                Button {
+                    systemStats.refresh()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.82))
+                        .frame(width: 28, height: 28)
+                        .background(Color.white.opacity(0.10))
+                        .clipShape(Circle())
+                        .contentShape(Circle())
+                }
+                .buttonStyle(NotchPressButtonStyle())
+                .help("Refresh Stats")
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.white.opacity(0.07))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func statMeterTile(title: String, value: String, ratio: Double, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(title)
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.62))
+                Spacer()
+                Text(value)
+                    .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundColor(.white.opacity(0.92))
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.white.opacity(0.12))
+                    Capsule()
+                        .fill(tint)
+                        .frame(width: max(4, geo.size.width * ratio))
+                }
+            }
+            .frame(height: 6)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.white.opacity(0.07))
+        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+    }
+
+    // MARK: - Tools Card (1-Click macOS Utilities)
+
+    private var toolsCard: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                toolActionButton(icon: "camera.viewfinder", title: "Screenshot") {
+                    controller.collapseImmediately()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        let task = Process()
+                        task.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+                        task.arguments = ["-i", "-c"]
+                        try? task.run()
+                    }
+                }
+
+                toolActionButton(
+                    icon: "eyedropper.halffull",
+                    title: pickedHexFeedback ?? "Color Picker"
+                ) {
+                    NSColorSampler().show { selectedColor in
+                        guard let color = selectedColor?.usingColorSpace(.sRGB) else { return }
+                        let r = Int((color.redComponent * 255).rounded())
+                        let g = Int((color.greenComponent * 255).rounded())
+                        let b = Int((color.blueComponent * 255).rounded())
+                        let hex = String(format: "#%02X%02X%02X", r, g, b)
+                        let pb = NSPasteboard.general
+                        pb.clearContents()
+                        pb.setString(hex, forType: .string)
+                        pickedHexFeedback = hex
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                            pickedHexFeedback = nil
+                        }
+                    }
+                }
+
+                toolActionButton(icon: "terminal.fill", title: "Terminal") {
+                    controller.collapseImmediately()
+                    NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app"))
+                }
+            }
+
+            HStack(spacing: 8) {
+                toolActionButton(icon: "folder.fill", title: "Downloads") {
+                    controller.collapseImmediately()
+                    let downloads = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")
+                    NSWorkspace.shared.open(downloads)
+                }
+
+                toolActionButton(icon: "waveform.path.ecg", title: "Activity") {
+                    controller.collapseImmediately()
+                    NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Utilities/Activity Monitor.app"))
+                }
+
+                toolActionButton(icon: "lock.fill", title: "Sleep Screen") {
+                    controller.collapseImmediately()
+                    let task = Process()
+                    task.executableURL = URL(fileURLWithPath: "/usr/bin/pmset")
+                    task.arguments = ["displaysleepnow"]
+                    try? task.run()
+                }
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.white.opacity(0.07))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func toolActionButton(icon: String, title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 11.5, weight: .semibold))
+                Text(title)
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .lineLimit(1)
+            }
+            .foregroundColor(.white.opacity(0.88))
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.white.opacity(0.09))
+            .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         }
         .buttonStyle(NotchPressButtonStyle())
     }

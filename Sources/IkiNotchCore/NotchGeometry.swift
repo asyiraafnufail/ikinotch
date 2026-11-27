@@ -60,8 +60,8 @@ public enum NotchGeometry {
 
     public static func expandedMetrics(hasNowPlayingOrCalendar: Bool = true) -> NotchMetrics {
         NotchMetrics(
-            bodyWidth: 510,
-            height: hasNowPlayingOrCalendar ? 186 : 124,
+            bodyWidth: 550,
+            height: hasNowPlayingOrCalendar ? 192 : 124,
             topEarRadius: 10,
             bottomCornerRadius: 22
         )
