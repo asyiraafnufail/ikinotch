@@ -158,7 +158,7 @@ struct NotchContentView: View {
                         .transition(.opacity)
                 }
             }
-            .padding(.horizontal, isPill ? (controller.displayState == .collapsed ? 10 : 14) : (currentMetrics.topEarRadius + (controller.displayState == .collapsed ? 4 : 10)))
+            .padding(.horizontal, isPill ? (controller.displayState == .collapsed ? 10 : 14) : (currentMetrics.topEarRadius + (controller.displayState == .collapsed ? 4 : 14)))
         }
         .clipShape(AnyShape(isPill ? AnyShape(pillShape) : AnyShape(notchShape)))
         .contentShape(AnyShape(isPill ? AnyShape(pillShape) : AnyShape(notchShape)))
@@ -518,7 +518,6 @@ struct NotchContentView: View {
         }
         .padding(.top, 12)
         .padding(.bottom, 14)
-        .padding(.horizontal, 4)
         .onAppear {
             battery.refresh()
             nowPlaying.refreshFromMediaRemote()
@@ -684,11 +683,11 @@ struct NotchContentView: View {
                 }
             }
         }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white.opacity(0.07))
-        .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var summaryStatusCard: some View {
@@ -744,10 +743,10 @@ struct NotchContentView: View {
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.vertical, 9)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .background(Color.white.opacity(0.07))
-        .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func quickControlButton(
@@ -769,8 +768,8 @@ struct NotchContentView: View {
             .padding(.horizontal, 8)
             .frame(maxWidth: .infinity, minHeight: 34)
             .background(isActive ? activeColor.opacity(0.85) : Color.white.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(NotchPressButtonStyle())
     }
@@ -862,7 +861,7 @@ struct NotchContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.black.opacity(0.35))
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         }
         .padding(10)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1077,7 +1076,7 @@ struct NotchContentView: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .padding(11)
+        .padding(10)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -1136,7 +1135,7 @@ struct NotchContentView: View {
                 .padding(.horizontal, 8)
                 .frame(minHeight: 28)
                 .background(Color.white.opacity(0.07))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
 
                 HStack(spacing: 4) {
                     Image(systemName: "thermometer.medium")
@@ -1151,7 +1150,7 @@ struct NotchContentView: View {
                 .padding(.horizontal, 8)
                 .frame(minHeight: 28)
                 .background(Color.white.opacity(0.07))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
                 .help("Thermal State")
 
                 Button {
@@ -1176,8 +1175,8 @@ struct NotchContentView: View {
                     .padding(.horizontal, 8)
                     .frame(maxWidth: .infinity, minHeight: 28, alignment: .center)
                     .background(Color.white.opacity(0.07))
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
                 }
                 .buttonStyle(NotchPressButtonStyle())
                 .help("Click to copy Local IP")
@@ -1195,7 +1194,7 @@ struct NotchContentView: View {
                 .padding(.horizontal, 8)
                 .frame(minHeight: 28)
                 .background(Color.white.opacity(0.07))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
                 .help("System Uptime")
             }
         }
@@ -1338,7 +1337,7 @@ struct NotchContentView: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(Color.white.opacity(0.07))
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         }
         .padding(10)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
