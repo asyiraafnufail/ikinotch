@@ -129,9 +129,13 @@ func appendUInt32BE(_ value: UInt32, to data: inout Data) {
 let chunks: [(osType: String, pixels: Int)] = [
     ("icp4", 16),
     ("icp5", 32),
+    ("ic11", 32),
     ("icp6", 64),
+    ("ic12", 64),
     ("ic07", 128),
+    ("ic13", 256),
     ("ic08", 256),
+    ("ic14", 512),
     ("ic09", 512),
     ("ic10", 1024)
 ]

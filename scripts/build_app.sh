@@ -46,6 +46,7 @@ swift -module-cache-path "$CACHE_ROOT/clang" "$ROOT_DIR/scripts/generate_icon.sw
 
 echo "▶ Code-signing ad-hoc..."
 codesign --force --deep --sign - "$APP_BUNDLE"
+touch "$APP_BUNDLE"
 
 echo "✓ Built successfully: $APP_BUNDLE"
 du -sh "$APP_BUNDLE"
