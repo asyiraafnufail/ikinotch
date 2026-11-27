@@ -1,6 +1,21 @@
-# IkiNotch
+<div align="center">
+  <img src="docs/icon.png" alt="IkiNotch Icon" width="96" height="96" />
+  <h1>IkiNotch</h1>
+  <p>A lightweight, native macOS virtual notch &amp; Dynamic Island utility for non-notch Macs built with <strong>Swift, AppKit, and SwiftUI</strong> — engineered for <strong>near-zero idle consumption</strong> (0% background polling when collapsed).</p>
 
-A lightweight, native macOS virtual notch app for non-notch Macs built with **Swift, AppKit, and SwiftUI** — engineered for **near-zero idle consumption** (0% background polling when collapsed).
+  <p>
+    <a href="https://github.com/asyiraafnufail/ikinotch/releases">
+      <img src="https://img.shields.io/github/v/tag/asyiraafnufail/ikinotch?label=version&color=0A84FF" alt="Version" />
+    </a>
+    <img src="https://img.shields.io/badge/macOS-13.0%2B-000000?logo=apple&logoColor=white" alt="macOS 13.0+" />
+    <img src="https://img.shields.io/badge/Swift-5.9%2B-F05138?logo=swift&logoColor=white" alt="Swift 5.9+" />
+    <img src="https://img.shields.io/badge/Arch-Intel%20%26%20Apple%20Silicon-34C759" alt="Intel & Apple Silicon" />
+    <img src="https://img.shields.io/badge/Idle%20CPU-0%25%20Polling-5856D6" alt="0% Idle Polling" />
+    <a href="https://github.com/asyiraafnufail/ikinotch/stargazers">
+      <img src="https://img.shields.io/github/stars/asyiraafnufail/ikinotch?style=flat" alt="GitHub Stars" />
+    </a>
+  </p>
+</div>
 
 ## Key Features
 
@@ -39,6 +54,14 @@ See the full feature breakdown in [FEATURES.md](FEATURES.md).
 - **0 polling timers when collapsed** — backed by native OS events (`NSTrackingArea`, `IOPSNotificationCreateRunLoopSource`, `MediaRemote`, `CWEventDelegate`, `EKEventStoreChanged`, `NSEvent.flagsChanged`).
 - **Full App Nap support** & dynamic `NSPanel` frame shrinking when collapsed.
 - **Zero third-party dependencies** — compact ~2.5 MB `.app` bundle.
+
+## Compatibility & Supported Devices
+
+- **macOS:** **macOS 13.0 (Ventura)** or later (Ventura, Sonoma, Sequoia).
+- **Macs (Non-Notch Primary Target):**
+  - **Intel Macs (`x86_64`):** MacBook Pro, MacBook Air, iMac, Mac mini, Mac Pro — *100% native*.
+  - **Apple Silicon Macs (`M1 / M2 / M3 / M4`):** *100% native when built from source* (`./scripts/build_app.sh`); prebuilt Intel `.zip` runs via Rosetta 2.
+  - **External Monitors & Desktop Macs:** Works on any external display (Multi-Monitor *Main Display* or *Follow Active Display*). Desktop Macs without a battery automatically hide battery indicators cleanly.
 
 ## Build & Run
 
