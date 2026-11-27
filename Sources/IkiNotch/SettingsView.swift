@@ -113,6 +113,17 @@ struct SettingsView: View {
                 }
 
                 Toggle("Caps Lock Indicator", isOn: $settings.showCapsLockIndicator)
+                Toggle("Camera & Mic Indicators", isOn: $settings.showPrivacyIndicators)
+                Toggle("Show Wi-Fi Name (SSID)", isOn: $settings.showWiFiName)
+
+                if settings.showBattery {
+                    Picker("Battery Display", selection: $settings.batteryDisplayStyle) {
+                        ForEach(BatteryDisplayStyle.allCases) { style in
+                            Text(style.displayName).tag(style)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
             }
 
             Section("Widgets") {

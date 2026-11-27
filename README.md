@@ -9,7 +9,7 @@ A lightweight, native macOS virtual notch app for non-notch Macs built with **Sw
   - **Smart Status** — automatically displays Active Timer → Now Playing (Browser YouTube, Spotify, Apple Music, VLC) → Calendar Up Next → Connected Wi-Fi (SSID) → `Offline` + proportional real-level Battery.
   - **Custom** — custom text (+ optional battery).
   - **Pure Black** — solid black MacBook-style notch.
-- **Event-Driven Indicators** — subtle **Caps Lock (`⇪`)** and **Keep Awake (`☕`)** icons appear automatically when active.
+- **Event-Driven Indicators** — subtle **Camera (green)**, **Microphone (orange)**, **Caps Lock (`⇪`)**, and **Keep Awake (`☕`)** icons appear automatically when active (0% polling).
 - **Expanded Panel (`Home` · `Media` · `Tray` · `Notes` · `Timer` · `Stats` · `Tools`)**:
   - **Home:** Combined dashboard (Mini Media, Calendar & Tray summary, plus 4 Quick Controls: **Wi-Fi**, **Bluetooth**, **Dark/Light Theme**, **Mute**).
   - **Media:** Full Now Playing card with cached 128px album art / YouTube thumbnail & system-wide `MediaRemote` controls.

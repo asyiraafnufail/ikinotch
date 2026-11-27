@@ -16,6 +16,7 @@ final class IkiNotchAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
     private let nowPlayingMonitor = NowPlayingMonitor(startListening: true)
     private let calendarMonitor = CalendarMonitor(startListening: true)
     private let capsLockMonitor = CapsLockMonitor(startListening: true)
+    private let privacyMonitor = PrivacyIndicatorMonitor(startListening: true)
     private let wifiMonitor = WiFiMonitor(startListening: true)
     private let keepAwakeManager = KeepAwakeManager()
     private let fileShelfStore = FileShelfStore()
@@ -47,6 +48,7 @@ final class IkiNotchAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         batteryMonitor.stop()
         nowPlayingMonitor.stop()
         capsLockMonitor.stop()
+        privacyMonitor.stop()
         wifiMonitor.stop()
         keepAwakeManager.deactivate()
     }
@@ -129,6 +131,7 @@ final class IkiNotchAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             nowPlaying: nowPlayingMonitor,
             calendar: calendarMonitor,
             capsLock: capsLockMonitor,
+            privacy: privacyMonitor,
             wifi: wifiMonitor,
             keepAwake: keepAwakeManager,
             fileShelf: fileShelfStore,
@@ -223,6 +226,11 @@ final class IkiNotchAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             capsLockMonitor.start()
         } else {
             capsLockMonitor.stop()
+        }
+        if settings.showPrivacyIndicators {
+            privacyMonitor.start()
+        } else {
+            privacyMonitor.stop()
         }
         if settings.showNowPlaying || settings.idleStyle == .smartStatus {
             nowPlayingMonitor.start()

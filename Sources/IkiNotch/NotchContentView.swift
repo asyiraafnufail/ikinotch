@@ -20,6 +20,7 @@ struct NotchContentView: View {
     @ObservedObject var nowPlaying: NowPlayingMonitor
     @ObservedObject var calendar: CalendarMonitor
     @ObservedObject var capsLock: CapsLockMonitor
+    @ObservedObject var privacy: PrivacyIndicatorMonitor
     @ObservedObject var wifi: WiFiMonitor
     @ObservedObject var keepAwake: KeepAwakeManager
     @ObservedObject var fileShelf: FileShelfStore
@@ -161,18 +162,35 @@ struct NotchContentView: View {
 
     // MARK: - Collapsed State (Idle Display + Caps Lock & Keep Awake Icons, 0 Timers)
 
+    private var hasActiveIdleIcons: Bool {
+        (settings.showCapsLockIndicator && capsLock.isCapsLockOn)
+            || keepAwake.isActive
+            || (settings.showPrivacyIndicators && (privacy.isCameraActive || privacy.isMicActive))
+    }
+
+    @ViewBuilder
+    private var activeStatusIcons: some View {
+        if settings.showPrivacyIndicators && privacy.isCameraActive {
+            cameraActiveIcon
+        }
+        if settings.showPrivacyIndicators && privacy.isMicActive {
+            micActiveIcon
+        }
+        if keepAwake.isActive {
+            keepAwakeIcon
+        }
+        if settings.showCapsLockIndicator && capsLock.isCapsLockOn {
+            capsLockIcon
+        }
+    }
+
     @ViewBuilder
     private var collapsedView: some View {
         switch settings.idleStyle {
         case .pureBlack:
-            if (settings.showCapsLockIndicator && capsLock.isCapsLockOn) || keepAwake.isActive {
+            if hasActiveIdleIcons {
                 HStack(spacing: 6) {
-                    if keepAwake.isActive {
-                        keepAwakeIcon
-                    }
-                    if settings.showCapsLockIndicator && capsLock.isCapsLockOn {
-                        capsLockIcon
-                    }
+                    activeStatusIcons
                 }
             } else {
                 Color.clear
@@ -185,12 +203,7 @@ struct NotchContentView: View {
                     .font(.system(size: 10.5, weight: .medium))
                     .foregroundColor(.white.opacity(0.88))
                     .lineLimit(1)
-                if keepAwake.isActive {
-                    keepAwakeIcon
-                }
-                if settings.showCapsLockIndicator && capsLock.isCapsLockOn {
-                    capsLockIcon
-                }
+                activeStatusIcons
                 if settings.customIdleShowBattery {
                     idleBatteryBadge
                 }
@@ -235,11 +248,14 @@ struct NotchContentView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "wifi")
                             .font(.system(size: 9.5, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.68))
-                        Text(ssid)
-                            .font(.system(size: 10.5, weight: .medium))
-                            .foregroundColor(.white.opacity(0.84))
-                            .lineLimit(1)
+                            .foregroundColor(.white.opacity(0.72))
+                        if settings.showWiFiName {
+                            Text(ssid)
+                                .font(.system(size: 10.5, weight: .medium))
+                                .foregroundColor(.white.opacity(0.84))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
                     }
                 } else {
                     Text("Offline")
@@ -248,12 +264,7 @@ struct NotchContentView: View {
                         .lineLimit(1)
                 }
 
-                if keepAwake.isActive {
-                    keepAwakeIcon
-                }
-                if settings.showCapsLockIndicator && capsLock.isCapsLockOn {
-                    capsLockIcon
-                }
+                activeStatusIcons
                 if settings.showBattery {
                     idleBatteryBadge
                 }
@@ -261,6 +272,20 @@ struct NotchContentView: View {
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, 2)
         }
+    }
+
+    private var cameraActiveIcon: some View {
+        Image(systemName: "video.fill")
+            .font(.system(size: 9.5, weight: .semibold))
+            .foregroundColor(Color(red: 0.24, green: 0.85, blue: 0.42))
+            .help("Camera in use")
+    }
+
+    private var micActiveIcon: some View {
+        Image(systemName: "mic.fill")
+            .font(.system(size: 9.5, weight: .semibold))
+            .foregroundColor(Color(red: 1.0, green: 0.58, blue: 0.16))
+            .help("Microphone in use")
     }
 
     private var keepAwakeIcon: some View {
@@ -281,15 +306,33 @@ struct NotchContentView: View {
     private var idleBatteryBadge: some View {
         if battery.status.hasBattery {
             HStack(spacing: 4) {
-                BatteryIconView(
-                    percentage: battery.status.percentage,
-                    isCharging: battery.status.isCharging
-                )
-                Text("\(battery.status.percentage)%")
-                    .font(.system(size: 10.5, weight: .medium, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundColor(.white.opacity(0.84))
+                if settings.batteryDisplayStyle != .percentOnly {
+                    BatteryIconView(
+                        percentage: battery.status.percentage,
+                        isCharging: battery.status.isCharging
+                    )
+                }
+                if settings.batteryDisplayStyle != .iconOnly {
+                    HStack(spacing: 2) {
+                        if settings.batteryDisplayStyle == .percentOnly && battery.status.isCharging {
+                            Image(systemName: "bolt.fill")
+                                .font(.system(size: 8.5, weight: .bold))
+                                .foregroundColor(Color(red: 0.24, green: 0.85, blue: 0.42))
+                        }
+                        Text("\(battery.status.percentage)%")
+                            .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundColor(
+                                settings.batteryDisplayStyle == .percentOnly
+                                    ? batteryTint
+                                    : .white.opacity(0.84)
+                            )
+                            .lineLimit(1)
+                    }
+                }
             }
+            .fixedSize(horizontal: true, vertical: false)
+            .layoutPriority(2)
         } else {
             Image(systemName: "sparkles")
                 .font(.system(size: 9.5))
@@ -347,20 +390,41 @@ struct NotchContentView: View {
                 .background(Color.white.opacity(0.08))
                 .clipShape(Capsule())
 
+                if settings.showPrivacyIndicators && privacy.isCameraActive {
+                    cameraActiveIcon
+                }
+                if settings.showPrivacyIndicators && privacy.isMicActive {
+                    micActiveIcon
+                }
                 if settings.showCapsLockIndicator && capsLock.isCapsLockOn {
                     capsLockIcon
                 }
 
                 if settings.showBattery && battery.status.hasBattery {
                     HStack(spacing: 4) {
-                        BatteryIconView(
-                            percentage: battery.status.percentage,
-                            isCharging: battery.status.isCharging
-                        )
-                        Text("\(battery.status.percentage)%")
-                            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                            .monospacedDigit()
-                            .foregroundColor(.white.opacity(0.92))
+                        if settings.batteryDisplayStyle != .percentOnly {
+                            BatteryIconView(
+                                percentage: battery.status.percentage,
+                                isCharging: battery.status.isCharging
+                            )
+                        }
+                        if settings.batteryDisplayStyle != .iconOnly {
+                            HStack(spacing: 2) {
+                                if settings.batteryDisplayStyle == .percentOnly && battery.status.isCharging {
+                                    Image(systemName: "bolt.fill")
+                                        .font(.system(size: 8.5, weight: .bold))
+                                        .foregroundColor(Color(red: 0.24, green: 0.85, blue: 0.42))
+                                }
+                                Text("\(battery.status.percentage)%")
+                                    .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                                    .monospacedDigit()
+                                    .foregroundColor(
+                                        settings.batteryDisplayStyle == .percentOnly
+                                            ? batteryTint
+                                            : .white.opacity(0.92)
+                                    )
+                            }
+                        }
                         if let timeStr = battery.status.formattedTimeRemaining {
                             Text("· \(timeStr)")
                                 .font(.system(size: 9.5, weight: .medium, design: .rounded))
@@ -491,7 +555,7 @@ struct NotchContentView: View {
             HStack(spacing: 8) {
                 quickControlButton(
                     icon: wifi.isPoweredOn ? "wifi" : "wifi.slash",
-                    title: wifi.currentSSID ?? (wifi.isPoweredOn ? "Wi-Fi" : "Wi-Fi Off"),
+                    title: (settings.showWiFiName ? wifi.currentSSID : nil) ?? (wifi.isPoweredOn ? "Wi-Fi" : "Wi-Fi Off"),
                     isActive: wifi.isPoweredOn,
                     activeColor: Color(red: 0.04, green: 0.52, blue: 1.0)
                 ) {

@@ -30,7 +30,9 @@ All idle modes run with **zero active timers**:
 - **Pure Black** — clean solid black silhouette resembling a physical MacBook notch.
 
 ### Event-Driven Idle Indicators
-- **Real-Level Proportional Battery** — custom battery icon that fills proportionally from 0–100% matching the actual battery level, with status colors (white normal, green + `⚡` bolt while charging, amber ≤ 25%, red ≤ 15%).
+- **Real-Level Proportional Battery** — custom battery icon that fills proportionally from 0–100% matching the actual battery level, with status colors (white normal, green + `⚡` bolt while charging, amber ≤ 25%, red ≤ 15%) and configurable display style (**Icon & %**, **% Only**, or **Icon Only**).
+- **Configurable Wi-Fi SSID Visibility** — toggle between showing the connected Wi-Fi name (`SSID`) or icon-only mode for a cleaner, more private look.
+- **Camera & Microphone Privacy Icons (`🎥` green / `🎙` orange)** — event-driven icons (`CoreMediaIO` & `CoreAudio`) appear automatically in Pill, Notch (idle), and Expanded states whenever any app uses your camera or microphone (0% polling, no permissions required).
 - **Caps Lock (`⇪`)** — subtle amber icon automatically appears alongside idle content when Caps Lock is on (toggleable in Settings).
 - **Keep Awake (`☕`)** — subtle amber coffee icon automatically appears when *Keep Awake* is active.
 

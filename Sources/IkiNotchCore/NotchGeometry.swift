@@ -62,7 +62,7 @@ public enum NotchGeometry {
         }
 
         if shapeStyle == .pill {
-            let pillHeight = max(19, baseHeight.rounded() - 4)
+            let pillHeight = max(18, baseHeight.rounded() - 5)
             return NotchMetrics(
                 bodyWidth: bodyWidth.rounded(),
                 height: pillHeight,

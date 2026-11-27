@@ -112,6 +112,22 @@ public enum NotchAnimationStyle: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+public enum BatteryDisplayStyle: String, CaseIterable, Identifiable, Codable {
+    case iconAndPercent = "both"
+    case percentOnly = "percent"
+    case iconOnly = "icon"
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .iconAndPercent: return "Icon & %"
+        case .percentOnly: return "% Only"
+        case .iconOnly: return "Icon Only"
+        }
+    }
+}
+
 public enum NotchIdleStyle: String, CaseIterable, Identifiable, Codable {
     case smartStatus = "smart"
     case custom = "custom"
@@ -143,6 +159,9 @@ public final class NotchSettings: ObservableObject {
         static let customIdleText = "ikinotch.customIdleText"
         static let customIdleShowBattery = "ikinotch.customIdleShowBattery"
         static let showCapsLockIndicator = "ikinotch.showCapsLockIndicator"
+        static let showPrivacyIndicators = "ikinotch.showPrivacyIndicators"
+        static let batteryDisplayStyle = "ikinotch.batteryDisplayStyle"
+        static let showWiFiName = "ikinotch.showWiFiName"
         static let hideInFullscreen = "ikinotch.v2.hideInFullscreen"
         static let showNowPlaying = "ikinotch.showNowPlaying"
         static let showCalendar = "ikinotch.showCalendar"
@@ -204,6 +223,18 @@ public final class NotchSettings: ObservableObject {
 
     @Published public var showCapsLockIndicator: Bool {
         didSet { defaults.set(showCapsLockIndicator, forKey: Keys.showCapsLockIndicator) }
+    }
+
+    @Published public var showPrivacyIndicators: Bool {
+        didSet { defaults.set(showPrivacyIndicators, forKey: Keys.showPrivacyIndicators) }
+    }
+
+    @Published public var batteryDisplayStyle: BatteryDisplayStyle {
+        didSet { defaults.set(batteryDisplayStyle.rawValue, forKey: Keys.batteryDisplayStyle) }
+    }
+
+    @Published public var showWiFiName: Bool {
+        didSet { defaults.set(showWiFiName, forKey: Keys.showWiFiName) }
     }
 
     @Published public var hideInFullscreen: Bool {
@@ -295,6 +326,14 @@ public final class NotchSettings: ObservableObject {
         self.customIdleText = defaults.string(forKey: Keys.customIdleText) ?? "Focus"
         self.customIdleShowBattery = defaults.object(forKey: Keys.customIdleShowBattery) as? Bool ?? true
         self.showCapsLockIndicator = defaults.object(forKey: Keys.showCapsLockIndicator) as? Bool ?? true
+        self.showPrivacyIndicators = defaults.object(forKey: Keys.showPrivacyIndicators) as? Bool ?? true
+        if let rawBat = defaults.string(forKey: Keys.batteryDisplayStyle),
+           let bat = BatteryDisplayStyle(rawValue: rawBat) {
+            self.batteryDisplayStyle = bat
+        } else {
+            self.batteryDisplayStyle = .iconAndPercent
+        }
+        self.showWiFiName = defaults.object(forKey: Keys.showWiFiName) as? Bool ?? true
         self.hideInFullscreen = defaults.object(forKey: Keys.hideInFullscreen) as? Bool ?? true
         self.showNowPlaying = defaults.object(forKey: Keys.showNowPlaying) as? Bool ?? true
         self.showCalendar = defaults.object(forKey: Keys.showCalendar) as? Bool ?? true
