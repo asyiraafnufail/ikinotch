@@ -10,12 +10,18 @@ Aplikasi virtual notch native untuk macOS (tanpa notch fisik) yang dibangun deng
   - **Custom** — teks pilihan sendiri (+ opsional baterai).
   - **Pure Black** — hitam polos ala notch fisik MacBook.
 - **Indikator Event-Driven** — ikon **Caps Lock (`⇪`)** dan **Keep Awake (`☕`)** muncul otomatis saat aktif.
-- **Panel Expanded (`Home` · `Media` · `Tray`)**:
+- **Panel Expanded (`Home` · `Media` · `Tray` · `Notes` · `Timer` · `Stats` · `Tools`)**:
   - **Home:** Dashboard gabungan (Mini Media, Calendar & Tray summary, serta 4 Quick Controls: **Wi-Fi**, **Bluetooth**, **Dark/Light Theme**, **Mute**).
-  - **Media:** Now Playing lengkap dengan album art / thumbnail & kontrol sistem-wide via `MediaRemote`.
+  - **Media:** Now Playing lengkap dengan album art / thumbnail (cached 128px) & kontrol sistem-wide via `MediaRemote`.
   - **Tray:** File Drop Shelf (drag-and-drop titip file tanpa copy disk + AirDrop).
+  - **Notes:** Catatan kilat auto-save + Copy & Clear 1-klik.
+  - **Timer:** Pomodoro / Countdown (`5m · 15m · 25m · 45m`), tampil di notch idle saat berjalan.
+  - **Stats:** Snapshot on-demand Memory, Disk Free, Local IP, dan Uptime.
+  - **Tools:** Screenshot (Clipboard), Color Picker (`#HEX`), Terminal, Downloads, Activity Monitor, Sleep Screen.
   - **Keep Awake (`☕`):** cegah Mac sleep 1-klik via `IOPMAssertion`.
 - **Simetris & Customizable:** pilihan *Trigger Mode* (`Expand on Hover` / `Click Only`), *Animation Style* (`Snappy`, `Smooth`, `Bouncy`, `Instant`), *Hover Delay* (`50 / 100 / 150 / 200 ms`), ukuran notch, dan *Launch at Login* (`SMAppService`).
+
+Lihat rincian lengkap semua fitur di [FEATURES.md](FEATURES.md).
 
 ## Arsitektur Zero-Idle
 
