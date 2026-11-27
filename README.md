@@ -38,7 +38,10 @@
 
 See the full feature breakdown in [FEATURES.md](FEATURES.md).
 
-## Screenshots
+## Screenshots & Demo
+
+### Video Demo (13s · 720p)
+▶ [Watch IkiNotch Demo Video (`docs/demo.mp4`)](docs/demo.mp4)
 
 ### Idle Modes — Notch & Pill (Dynamic Island)
 ![IkiNotch Idle Modes — Notch & Pill](docs/screenshots/idle-modes.png)
