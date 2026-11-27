@@ -31,7 +31,7 @@ See the full feature breakdown in [FEATURES.md](FEATURES.md).
 ### Expanded Panel — Home Dashboard
 ![IkiNotch Expanded Home Dashboard](docs/screenshots/expanded-home.png)
 
-### Feature Tabs — Media, Timer, Stats & Tools
+### Feature Tabs — Media, Tray, Notes, Timer, Stats & Tools
 ![IkiNotch Feature Tabs](docs/screenshots/expanded-tabs.png)
 
 ## Zero-Idle Architecture
