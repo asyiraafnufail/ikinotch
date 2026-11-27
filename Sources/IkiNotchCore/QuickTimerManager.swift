@@ -36,6 +36,9 @@ public final class QuickTimerManager: ObservableObject {
     @Published public private(set) var isRunning: Bool = false
     @Published public private(set) var didFinishRecently: Bool = false
 
+    public var soundEnabled: Bool = true
+    public var onTimerFinished: ((_ mode: QuickTimerMode, _ finishedPhase: PomodoroPhase) -> Void)?
+
     private var timer: DispatchSourceTimer?
 
     public init() {}
@@ -186,10 +189,15 @@ public final class QuickTimerManager: ObservableObject {
         }
 
         guard remainingSeconds > 1 else {
+            let finishedMode = mode
+            let finishedPhase = pomodoroPhase
             remainingSeconds = 0
             stopTimer()
             didFinishRecently = true
-            NSSound(named: NSSound.Name("Glass"))?.play()
+            if soundEnabled {
+                NSSound(named: NSSound.Name("Glass"))?.play()
+            }
+            onTimerFinished?(finishedMode, finishedPhase)
 
             if mode == .pomodoro {
                 advancePomodoroPhase()

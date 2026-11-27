@@ -138,6 +138,21 @@ struct NotchContentView: View {
                         .onTapGesture {
                             controller.handleNotchTapped()
                         }
+                        .contextMenu {
+                            Button("Expand Notch (⌃⌥N)") {
+                                controller.expandLocked()
+                            }
+                            Button(settings.shapeStyle == .notch ? "Switch to Pill Style" : "Switch to Notch Style") {
+                                settings.shapeStyle = (settings.shapeStyle == .notch) ? .pill : .notch
+                            }
+                            Button("Settings...") {
+                                controller.onOpenSettings?()
+                            }
+                            Divider()
+                            Button("Quit IkiNotch") {
+                                NSApp.terminate(nil)
+                            }
+                        }
                 } else {
                     expandedView
                         .transition(.opacity)
@@ -509,6 +524,7 @@ struct NotchContentView: View {
             nowPlaying.refreshFromMediaRemote()
             wifi.refresh()
             systemControls.refresh()
+            privacy.refresh()
             if selectedTab == .stats {
                 systemStats.startLiveUpdates()
             }
@@ -1288,6 +1304,41 @@ struct NotchContentView: View {
                     try? task.run()
                 }
             }
+
+            // Compact Volume Slider (CoreAudio, zero idle polling)
+            HStack(spacing: 8) {
+                Button {
+                    systemControls.toggleAudioMute()
+                } label: {
+                    Image(systemName: systemControls.isMuted || systemControls.outputVolume <= 0.01 ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .foregroundColor(systemControls.isMuted ? Color(red: 0.95, green: 0.32, blue: 0.28) : .white.opacity(0.8))
+                        .frame(width: 20, height: 20)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(NotchPressButtonStyle())
+                .help(systemControls.isMuted ? "Unmute" : "Mute")
+
+                Slider(
+                    value: Binding(
+                        get: { Double(systemControls.outputVolume) },
+                        set: { systemControls.setOutputVolume(Float($0)) }
+                    ),
+                    in: 0...1
+                )
+                .controlSize(.mini)
+                .tint(.white)
+
+                Text("\(Int((systemControls.isMuted ? 0 : systemControls.outputVolume * 100).rounded()))%")
+                    .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundColor(.white.opacity(0.68))
+                    .frame(width: 28, alignment: .trailing)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(Color.white.opacity(0.07))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
         .padding(10)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1354,8 +1405,23 @@ struct NotchContentView: View {
                             .padding(.vertical, 3)
                             .background(Color.white.opacity(0.12))
                             .clipShape(Capsule())
+                            .contentShape(Capsule())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(NotchPressButtonStyle())
+
+                    Button {
+                        showSharePicker(urls: fileShelf.items.map(\.url))
+                    } label: {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.white.opacity(0.88))
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(Color.white.opacity(0.12))
+                            .clipShape(Capsule())
+                            .contentShape(Capsule())
+                    }
+                    .buttonStyle(NotchPressButtonStyle())
 
                     Button {
                         fileShelf.clear()
@@ -1367,8 +1433,9 @@ struct NotchContentView: View {
                             .padding(.vertical, 3)
                             .background(Color.white.opacity(0.08))
                             .clipShape(Capsule())
+                            .contentShape(Capsule())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(NotchPressButtonStyle())
                 }
 
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -1456,6 +1523,13 @@ struct NotchContentView: View {
         service.perform(withItems: urls)
     }
 
+    private func showSharePicker(urls: [URL]) {
+        guard !urls.isEmpty, let contentView = NSApp.windows.first(where: { $0 is NotchPanel })?.contentView else { return }
+        let picker = NSSharingServicePicker(items: urls)
+        let anchorRect = NSRect(x: contentView.bounds.midX, y: contentView.bounds.midY, width: 1, height: 1)
+        picker.show(relativeTo: anchorRect, of: contentView, preferredEdge: .minY)
+    }
+
     // MARK: - Now Playing Card (Full Media Tab, Centered Text)
 
     private var nowPlayingCard: some View {
@@ -1500,6 +1574,35 @@ struct NotchContentView: View {
                                 .foregroundColor(.white.opacity(0.65))
                                 .multilineTextAlignment(.center)
                                 .lineLimit(1)
+                        }
+
+                        if track.duration > 0 {
+                            TimelineView(.periodic(from: .now, by: track.isPlaying ? 1.0 : 60.0)) { context in
+                                let elapsed = track.estimatedElapsed(at: context.date)
+                                let ratio = min(1.0, max(0.0, elapsed / track.duration))
+                                HStack(spacing: 6) {
+                                    Text(NowPlayingInfo.formatDuration(elapsed))
+                                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                                        .monospacedDigit()
+                                        .foregroundColor(.white.opacity(0.5))
+
+                                    GeometryReader { geo in
+                                        ZStack(alignment: .leading) {
+                                            Capsule().fill(Color.white.opacity(0.14))
+                                            Capsule()
+                                                .fill(Color.white.opacity(0.85))
+                                                .frame(width: max(3, geo.size.width * ratio))
+                                        }
+                                    }
+                                    .frame(height: 3.5)
+
+                                    Text(NowPlayingInfo.formatDuration(track.duration))
+                                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                                        .monospacedDigit()
+                                        .foregroundColor(.white.opacity(0.5))
+                                }
+                                .frame(maxWidth: 220)
+                            }
                         }
 
                         HStack(spacing: 22) {

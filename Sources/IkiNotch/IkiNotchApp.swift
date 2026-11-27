@@ -24,6 +24,7 @@ final class IkiNotchAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
     private let quickTimer = QuickTimerManager()
     private let scratchpad = ScratchpadStore()
     private let systemStats = SystemStatsProvider()
+    private let hotKeyManager = GlobalHotKeyManager()
 
     private var cancellables = Set<AnyCancellable>()
     private var toggleVisibilityMenuItem: NSMenuItem?
@@ -40,17 +41,54 @@ final class IkiNotchAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
         setupNotchPanel()
+        setupGlobalHotKeyAndTimerCallbacks()
         bindObservers()
         updatePanelVisibilityAndFrame()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        hotKeyManager.stop()
         batteryMonitor.stop()
         nowPlayingMonitor.stop()
         capsLockMonitor.stop()
         privacyMonitor.stop()
         wifiMonitor.stop()
         keepAwakeManager.deactivate()
+    }
+
+    private func setupGlobalHotKeyAndTimerCallbacks() {
+        hotKeyManager.onHotKeyPressed = { [weak self] in
+            guard let self else { return }
+            if !self.settings.isNotchVisible {
+                self.settings.isNotchVisible = true
+            }
+            if self.controller.displayState == .collapsed {
+                self.updatePanelVisibilityAndFrame()
+                self.controller.expandLocked()
+            } else {
+                self.controller.collapseImmediately()
+            }
+        }
+
+        quickTimer.onTimerFinished = { mode, finishedPhase in
+            let title: String
+            let message: String
+            if mode == .pomodoro {
+                title = "IkiNotch Pomodoro"
+                message = finishedPhase == .focus
+                    ? "Focus session complete! Time for a break."
+                    : "Break finished! Ready for your next focus session."
+            } else {
+                title = "IkiNotch Timer"
+                message = "Countdown finished."
+            }
+            DispatchQueue.global(qos: .utility).async {
+                let task = Process()
+                task.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+                task.arguments = ["-e", "display notification \"\(message)\" with title \"\(title)\""]
+                try? task.run()
+            }
+        }
     }
 
     // MARK: - Menu Bar Status Item
@@ -216,6 +254,7 @@ final class IkiNotchAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.capsLockMonitor.refresh()
+                self?.privacyMonitor.refresh()
                 self?.handleSpaceOrAppTransition()
             }
             .store(in: &cancellables)
@@ -237,6 +276,13 @@ final class IkiNotchAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         } else {
             nowPlayingMonitor.stop()
         }
+        if settings.enableGlobalShortcut {
+            hotKeyManager.start()
+        } else {
+            hotKeyManager.stop()
+        }
+        quickTimer.soundEnabled = settings.timerSoundEnabled
+        statusItem?.isVisible = settings.showMenuBarIcon
     }
 
     private func handleSpaceOrAppTransition() {
@@ -258,6 +304,14 @@ final class IkiNotchAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
     }
 
     private func resolveTargetScreen() -> NSScreen {
+        if settings.displayTarget == .activeScreen {
+            let mouseLoc = NSEvent.mouseLocation
+            if let mouseScreen = NSScreen.screens.first(where: { NSMouseInRect(mouseLoc, $0.frame, false) }) {
+                return mouseScreen
+            }
+            return NSScreen.main ?? NSScreen.screens.first!
+        }
+
         if settings.preferredDisplayID != 0 {
             for screen in NSScreen.screens {
                 if let num = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber,
@@ -266,7 +320,7 @@ final class IkiNotchAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
                 }
             }
         }
-        return NSScreen.main ?? NSScreen.screens.first!
+        return NSScreen.screens.first ?? NSScreen.main!
     }
 
     private func isFullscreenActive(on screen: NSScreen) -> Bool {

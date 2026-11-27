@@ -17,7 +17,9 @@ public final class PrivacyIndicatorMonitor: ObservableObject {
     private var cameraDevicesListenerBlock: CMIOObjectPropertyListenerBlock?
     private var cameraRunningListenerBlock: CMIOObjectPropertyListenerBlock?
     private var audioDevicesListenerBlock: AudioObjectPropertyListenerBlock?
+    private var defaultInputListenerBlock: AudioObjectPropertyListenerBlock?
     private var micRunningListenerBlock: AudioObjectPropertyListenerBlock?
+    private var settleWorkItem: DispatchWorkItem?
 
     public init(startListening: Bool = true) {
         if startListening {
@@ -43,6 +45,8 @@ public final class PrivacyIndicatorMonitor: ObservableObject {
         queue.async { [weak self] in
             guard let self, self.isListening else { return }
             self.isListening = false
+            self.settleWorkItem?.cancel()
+            self.settleWorkItem = nil
             self.detachCameraListeners()
             self.detachMicListeners()
             DispatchQueue.main.async {
@@ -50,6 +54,29 @@ public final class PrivacyIndicatorMonitor: ObservableObject {
                 self.isMicActive = false
             }
         }
+    }
+
+    /// Event-driven on-demand refresh (zero polling).
+    public func refresh() {
+        queue.async { [weak self] in
+            guard let self, self.isListening else { return }
+            self.rewatchCameraDevices()
+            self.rewatchMicDevices()
+            self.refreshStatesOnQueue()
+        }
+    }
+
+    /// One-shot settle check after hardware device list or camera transitions
+    /// (covers macOS Voice Processing / WebRTC aggregate mic devices starting slightly after creation).
+    private func scheduleOneShotSettleRefresh() {
+        settleWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, self.isListening else { return }
+            self.rewatchMicDevices()
+            self.refreshStatesOnQueue()
+        }
+        settleWorkItem = work
+        queue.asyncAfter(deadline: .now() + 0.4, execute: work)
     }
 
     private func refreshStatesOnQueue() {
@@ -91,6 +118,7 @@ public final class PrivacyIndicatorMonitor: ObservableObject {
         cameraRunningListenerBlock = { [weak self] _, _ in
             guard let self, self.isListening else { return }
             self.refreshStatesOnQueue()
+            self.scheduleOneShotSettleRefresh()
         }
 
         rewatchCameraDevices()
@@ -207,6 +235,7 @@ public final class PrivacyIndicatorMonitor: ObservableObject {
             guard let self, self.isListening else { return }
             self.rewatchMicDevices()
             self.refreshStatesOnQueue()
+            self.scheduleOneShotSettleRefresh()
         }
         audioDevicesListenerBlock = devicesBlock
 
@@ -222,6 +251,26 @@ public final class PrivacyIndicatorMonitor: ObservableObject {
             devicesBlock
         )
 
+        let defaultInputBlock: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+            guard let self, self.isListening else { return }
+            self.rewatchMicDevices()
+            self.refreshStatesOnQueue()
+            self.scheduleOneShotSettleRefresh()
+        }
+        defaultInputListenerBlock = defaultInputBlock
+
+        var defaultInputAddr = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultInputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        AudioObjectAddPropertyListenerBlock(
+            AudioObjectID(kAudioObjectSystemObject),
+            &defaultInputAddr,
+            queue,
+            defaultInputBlock
+        )
+
         micRunningListenerBlock = { [weak self] _, _ in
             guard let self, self.isListening else { return }
             self.refreshStatesOnQueue()
@@ -234,8 +283,8 @@ public final class PrivacyIndicatorMonitor: ObservableObject {
         if let runningBlock = micRunningListenerBlock {
             var runAddr = AudioObjectPropertyAddress(
                 mSelector: kAudioDevicePropertyDeviceIsRunningSomewhere,
-                mScope: kAudioDevicePropertyScopeInput,
-                mElement: kAudioObjectPropertyElementMain
+                mScope: kAudioObjectPropertyScopeWildcard,
+                mElement: kAudioObjectPropertyElementWildcard
             )
             for id in watchedMicIDs {
                 AudioObjectRemovePropertyListenerBlock(id, &runAddr, queue, runningBlock)
@@ -247,8 +296,8 @@ public final class PrivacyIndicatorMonitor: ObservableObject {
         if let runningBlock = micRunningListenerBlock {
             var runAddr = AudioObjectPropertyAddress(
                 mSelector: kAudioDevicePropertyDeviceIsRunningSomewhere,
-                mScope: kAudioDevicePropertyScopeInput,
-                mElement: kAudioObjectPropertyElementMain
+                mScope: kAudioObjectPropertyScopeWildcard,
+                mElement: kAudioObjectPropertyElementWildcard
             )
             for id in watchedMicIDs {
                 AudioObjectAddPropertyListenerBlock(id, &runAddr, queue, runningBlock)
@@ -272,11 +321,26 @@ public final class PrivacyIndicatorMonitor: ObservableObject {
             audioDevicesListenerBlock = nil
         }
 
+        if let defaultInputBlock = defaultInputListenerBlock {
+            var defaultInputAddr = AudioObjectPropertyAddress(
+                mSelector: kAudioHardwarePropertyDefaultInputDevice,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain
+            )
+            AudioObjectRemovePropertyListenerBlock(
+                AudioObjectID(kAudioObjectSystemObject),
+                &defaultInputAddr,
+                queue,
+                defaultInputBlock
+            )
+            defaultInputListenerBlock = nil
+        }
+
         if let runningBlock = micRunningListenerBlock {
             var runAddr = AudioObjectPropertyAddress(
                 mSelector: kAudioDevicePropertyDeviceIsRunningSomewhere,
-                mScope: kAudioDevicePropertyScopeInput,
-                mElement: kAudioObjectPropertyElementMain
+                mScope: kAudioObjectPropertyScopeWildcard,
+                mElement: kAudioObjectPropertyElementWildcard
             )
             for id in watchedMicIDs {
                 AudioObjectRemovePropertyListenerBlock(id, &runAddr, queue, runningBlock)
@@ -307,10 +371,10 @@ public final class PrivacyIndicatorMonitor: ObservableObject {
         return ids.filter { hasInputStreams($0) }
     }
 
-    private static func hasInputStreams(_ deviceID: AudioDeviceID) -> Bool {
+    private static func hasStreams(_ deviceID: AudioDeviceID, scope: AudioObjectPropertyScope) -> Bool {
         var addr = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyStreamConfiguration,
-            mScope: kAudioDevicePropertyScopeInput,
+            mScope: scope,
             mElement: kAudioObjectPropertyElementMain
         )
         var dataSize: UInt32 = 0
@@ -332,15 +396,42 @@ public final class PrivacyIndicatorMonitor: ObservableObject {
         return bufferList.contains { $0.mNumberChannels > 0 }
     }
 
+    private static func hasInputStreams(_ deviceID: AudioDeviceID) -> Bool {
+        hasStreams(deviceID, scope: kAudioDevicePropertyScopeInput)
+    }
+
+    private static func hasOutputStreams(_ deviceID: AudioDeviceID) -> Bool {
+        hasStreams(deviceID, scope: kAudioDevicePropertyScopeOutput)
+    }
+
     private static func isAudioDeviceRunning(_ deviceID: AudioDeviceID) -> Bool {
-        var addr = AudioObjectPropertyAddress(
+        var inputAddr = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyDeviceIsRunningSomewhere,
             mScope: kAudioDevicePropertyScopeInput,
             mElement: kAudioObjectPropertyElementMain
         )
         var isRunning: UInt32 = 0
         var dataSize = UInt32(MemoryLayout<UInt32>.size)
-        let status = AudioObjectGetPropertyData(deviceID, &addr, 0, nil, &dataSize, &isRunning)
-        return status == noErr && isRunning != 0
+        if AudioObjectGetPropertyData(deviceID, &inputAddr, 0, nil, &dataSize, &isRunning) == noErr,
+           isRunning != 0 {
+            return true
+        }
+
+        // For dedicated input-only microphones (e.g. Built-in Mic / USB Mic with no output streams),
+        // CoreAudio reliably reports running state on kAudioObjectPropertyScopeGlobal.
+        if !hasOutputStreams(deviceID) {
+            var globalAddr = AudioObjectPropertyAddress(
+                mSelector: kAudioDevicePropertyDeviceIsRunningSomewhere,
+                mScope: kAudioObjectPropertyScopeGlobal,
+                mElement: kAudioObjectPropertyElementMain
+            )
+            isRunning = 0
+            dataSize = UInt32(MemoryLayout<UInt32>.size)
+            if AudioObjectGetPropertyData(deviceID, &globalAddr, 0, nil, &dataSize, &isRunning) == noErr,
+               isRunning != 0 {
+                return true
+            }
+        }
+        return false
     }
 }

@@ -4,24 +4,32 @@ A lightweight, native macOS virtual notch app for non-notch Macs built with **Sw
 
 ## Key Features
 
-- **Notch & Pill (Dynamic Island) Styles** — switch live between a menu-bar flush **Notch** (concave ears) and a floating **Pill** capsule; auto-hides in **Fullscreen Spaces**.
+- **Notch & Pill (Dynamic Island) Styles** — switch live between a menu-bar flush **Notch** (concave ears) and a floating **Pill** capsule; auto-hides in **Fullscreen Spaces**, supports **Multi-Monitor** (*Main Display* or *Follow Active Display*), optional hidden Menu Bar icon (with right-click context menu on the notch), and a zero-CPU **Global Shortcut (`⌃⌥N`)**.
 - **3 Zero-Timer Idle Modes**:
-  - **Smart Status** — automatically displays Active Timer → Now Playing (Browser YouTube, Spotify, Apple Music, VLC) → Calendar Up Next → Connected Wi-Fi (SSID) → `Offline` + proportional real-level Battery.
+  - **Smart Status** — automatically displays Active Timer → Now Playing (Browser YouTube, Spotify, Apple Music, VLC) → Calendar Up Next → Connected Wi-Fi (SSID or icon-only) → `Offline` + proportional real-level Battery (`Icon & %`, `% Only`, or `Icon Only`).
   - **Custom** — custom text (+ optional battery).
   - **Pure Black** — solid black MacBook-style notch.
 - **Event-Driven Indicators** — subtle **Camera (green)**, **Microphone (orange)**, **Caps Lock (`⇪`)**, and **Keep Awake (`☕`)** icons appear automatically when active (0% polling).
 - **Expanded Panel (`Home` · `Media` · `Tray` · `Notes` · `Timer` · `Stats` · `Tools`)**:
   - **Home:** Combined dashboard (Mini Media, Calendar & Tray summary, plus 4 Quick Controls: **Wi-Fi**, **Bluetooth**, **Dark/Light Theme**, **Mute**).
-  - **Media:** Full Now Playing card with cached 128px album art / YouTube thumbnail & system-wide `MediaRemote` controls.
-  - **Tray:** File Drop Shelf (zero-copy drag-and-drop holding tray + AirDrop).
+  - **Media:** Full Now Playing card with cached 128px album art / YouTube thumbnail, live **Progress Bar** (visible-only), and system-wide `MediaRemote` controls.
+  - **Tray:** File Drop Shelf (zero-copy drag-and-drop holding tray, drag out to any app, **AirDrop**, and macOS **Share** sheet).
   - **Notes:** Auto-saving quick scratchpad with one-click Copy & Clear.
-  - **Timer:** Multi-mode **Timer** (`1m/5m/10m/25m/45m` + `±1m`), **Pomodoro** (*Focus / Break / Long Break* cycles), and **Stopwatch** (*Mark Lap*) with live idle notch display.
+  - **Timer:** Multi-mode **Timer** (`1m/5m/10m/25m/45m` + `±1m`), **Pomodoro** (*Focus / Break / Long Break* cycles), and **Stopwatch** (*Mark Lap*) with completion sound, macOS notification, and live idle notch display.
   - **Stats:** Live-while-visible CPU %, RAM, Disk Free, Network Down/Up speed, Thermal state, clickable Local IP, and Uptime (0% CPU when closed).
-  - **Tools:** Screenshot (Clipboard), Color Picker (`#HEX`), Terminal, Downloads, Activity Monitor, and Sleep Screen.
+  - **Tools:** Screenshot (Clipboard), Color Picker (`#HEX`), Terminal, Downloads, Activity Monitor, Sleep Screen, and a compact CoreAudio **Volume Slider**.
   - **Keep Awake (`☕`):** one-click sleep prevention via `IOPMAssertion`.
 - **Customizable & Symmetrical:** choose *Trigger Mode* (`Expand on Hover` / `Click Only`), *Animation Style* (`Snappy`, `Smooth`, `Bouncy`, `Instant`), *Hover Delay* (`50 / 100 / 150 / 200 ms`), notch size, and *Launch at Login* (`SMAppService`).
 
 See the full feature breakdown in [FEATURES.md](FEATURES.md).
+
+## Visual Modes
+
+```text
+Notch (Idle):      ╭─── 📶 MyWiFi   [████ ] 86% ───╮
+Pill (Idle):       ( 📶 MyWiFi   🎥 🎙   [████ ] 86% )
+Expanded (7 Tabs): [ 01:48 Sat 28 | 🏠 🎵 📥 📝 ⏱ 📊 🛠 | [████ ] 86% · 4:12 | ☕ ⚙ ]
+```
 
 ## Zero-Idle Architecture
 

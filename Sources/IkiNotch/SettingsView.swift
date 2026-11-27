@@ -14,6 +14,18 @@ struct SettingsView: View {
         Form {
             Section("General") {
                 Toggle("Show Virtual Notch", isOn: $settings.isNotchVisible)
+                Toggle("Show Menu Bar Icon", isOn: $settings.showMenuBarIcon)
+                if !settings.showMenuBarIcon {
+                    Text("Right-click the notch anytime to open Settings or Quit.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Picker("Display", selection: $settings.displayTarget) {
+                    ForEach(NotchDisplayTarget.allCases) { target in
+                        Text(target.displayName).tag(target)
+                    }
+                }
 
                 Toggle("Launch at Login", isOn: Binding(
                     get: { settings.launchAtLoginEnabled },
@@ -30,6 +42,8 @@ struct SettingsView: View {
             }
 
             Section("Interaction") {
+                Toggle("Global Shortcut (⌃⌥N)", isOn: $settings.enableGlobalShortcut)
+
                 Picker("Trigger Mode", selection: $settings.triggerMode) {
                     ForEach(NotchTriggerMode.allCases) { mode in
                         Text(mode.displayName).tag(mode)
@@ -132,6 +146,7 @@ struct SettingsView: View {
                 Toggle("Now Playing (Browser, Music, Spotify)", isOn: $settings.showNowPlaying)
                 Toggle("Calendar (Up Next)", isOn: $settings.showCalendar)
                 Toggle("File Drop Shelf (Tray)", isOn: $settings.showFileShelf)
+                Toggle("Timer & Pomodoro Sound", isOn: $settings.timerSoundEnabled)
 
                 if settings.showCalendar && calendar.authState == .notDetermined {
                     Button("Grant Calendar Permission") {
@@ -164,7 +179,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 460, height: 540)
+        .frame(width: 460, height: 560)
         .onAppear {
             memoryFootprintMB = Self.currentMemoryFootprintMB()
         }

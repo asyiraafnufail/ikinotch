@@ -12,7 +12,9 @@ Complete feature overview of **IkiNotch** — a lightweight, native macOS virtua
 | **Auto Menu Bar Height** | In the idle (*collapsed*) state, the notch height automatically matches the exact macOS menu bar boundary (`Compact`, `Standard`, `Wide`), with a `Custom` preset for manual width & height. |
 | **Auto-Hide in Fullscreen** | Automatically hides when entering Fullscreen Spaces or fullscreen video via on-screen `CGWindowList` detection (menu bar layer & normal fullscreen windows), with 0% polling. |
 | **Non-Activating Panel** | Hovering and clicking controls inside the notch never steals focus from your active app (keyboard focus is only enabled while typing in the `Notes` tab). |
-| **Menu Bar Utility (`LSUIElement`)** | Runs quietly with no Dock icon or `Cmd+Tab` clutter, providing quick Menu Bar actions (*Show/Hide*, *Expand*, *Center*, *Settings*, *Quit*). |
+| **Menu Bar Utility (`LSUIElement`)** | Runs quietly with no Dock icon or `Cmd+Tab` clutter. Menu Bar icon can be hidden in Settings, with a **right-click context menu** directly on the Notch/Pill (*Expand*, *Switch Notch/Pill*, *Settings*, *Quit*). |
+| **Multi-Monitor Support** | Choose between keeping the notch on the **Main Display** or **Follow Active Display** (event-driven, zero polling). |
+| **Global Shortcut (`⌃⌥N`)** | Native Carbon `RegisterEventHotKey` toggle to expand/collapse the notch from any app with 0% idle CPU and no Accessibility permissions required. |
 
 ---
 
@@ -45,12 +47,12 @@ The top header stays centered and locked at a fixed `28 pt` height with zero lay
 | Tab | Icon | Features |
 |---|---|---|
 | **Home** | 🏠 | **Combined Dashboard:** Mini Media strip (artwork + Play/Pause & Next), Calendar & Tray summary, plus **4 one-click Quick Controls** (**Wi-Fi**, **Bluetooth**, **Dark/Light Theme**, **Sound/Mute**). |
-| **Media** | 🎵 | **Full Now Playing:** `72×72 pt` cached & downsampled (128px) album art / YouTube thumbnail, centered track metadata, and system-wide **Prev / Play-Pause / Next** controls via `MediaRemote` for Brave, Chrome, Safari, Spotify, Apple Music, and VLC. |
-| **Tray** | 📥 | **File Drop Shelf:** drag-and-drop files onto the notch (automatically expands to Tray), holds file URL references with zero disk copying, drag out to any app, click to *Reveal in Finder*, and one-click **AirDrop**. |
+| **Media** | 🎵 | **Full Now Playing:** `72×72 pt` cached & downsampled (128px) album art / YouTube thumbnail, centered track metadata, live **Progress Bar** (runs only while Media tab is open), and system-wide **Prev / Play-Pause / Next** controls via `MediaRemote` for Brave, Chrome, Safari, Spotify, Apple Music, and VLC. |
+| **Tray** | 📥 | **File Drop Shelf:** drag-and-drop files onto the notch (automatically expands to Tray), holds file URL references with zero disk copying, drag out to any app, click to *Reveal in Finder*, one-click **AirDrop**, and macOS **Share** sheet. |
 | **Notes** | 📝 | **Quick Scratchpad:** auto-saving quick notes stored in `UserDefaults`, automatically enables keyboard input when selected, plus one-click **Copy** & **Clear**. |
-| **Timer** | ⏱ | **Multi-Mode Timer:** switch between **Timer** (`1m · 5m · 10m · 25m · 45m` + `-1m`/`+1m` adjust), **Pomodoro** (auto-cycling *Focus 25m → Break 5m → Long Break 15m* with session counter), and **Stopwatch** (count-up with *Mark Lap*). Plays a gentle `Glass` sound on completion, runs with **0% CPU when inactive**, and shows live time in the idle notch while running. |
+| **Timer** | ⏱ | **Multi-Mode Timer:** switch between **Timer** (`1m · 5m · 10m · 25m · 45m` + `-1m`/`+1m` adjust), **Pomodoro** (auto-cycling *Focus 25m → Break 5m → Long Break 15m* with session counter), and **Stopwatch** (count-up with *Mark Lap*). Plays a toggleable `Glass` sound + macOS notification on completion, runs with **0% CPU when inactive**, and shows live time in the idle notch while running. |
 | **Stats** | 📊 | **Live System Monitor (Visible-Only):** displays **CPU %**, **RAM**, **Disk Free**, **Network Speed (↓ Down / ↑ Up)**, **Thermal State**, **Local IP (click to copy)**, and **System Uptime** — sampled natively via Mach/Darwin APIs every 2s *only while the Stats tab is open* (**0% idle CPU** when closed or on other tabs). |
-| **Tools** | 🛠 | **One-Click Utilities:** **Screenshot (Clipboard)**, **Color Picker (auto-copies `#HEX`)**, **Terminal**, **Downloads**, **Activity Monitor**, and **Sleep Screen**. |
+| **Tools** | 🛠 | **One-Click Utilities:** **Screenshot (Clipboard)**, **Color Picker (auto-copies `#HEX`)**, **Terminal**, **Downloads**, **Activity Monitor**, **Sleep Screen**, and a compact CoreAudio **Volume Slider** + Mute toggle. |
 
 ---
 

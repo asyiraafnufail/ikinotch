@@ -128,6 +128,20 @@ public enum BatteryDisplayStyle: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+public enum NotchDisplayTarget: String, CaseIterable, Identifiable, Codable {
+    case primaryScreen = "primary"
+    case activeScreen = "active"
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .primaryScreen: return "Main Display"
+        case .activeScreen: return "Follow Active Display"
+        }
+    }
+}
+
 public enum NotchIdleStyle: String, CaseIterable, Identifiable, Codable {
     case smartStatus = "smart"
     case custom = "custom"
@@ -162,6 +176,10 @@ public final class NotchSettings: ObservableObject {
         static let showPrivacyIndicators = "ikinotch.showPrivacyIndicators"
         static let batteryDisplayStyle = "ikinotch.batteryDisplayStyle"
         static let showWiFiName = "ikinotch.showWiFiName"
+        static let enableGlobalShortcut = "ikinotch.enableGlobalShortcut"
+        static let showMenuBarIcon = "ikinotch.showMenuBarIcon"
+        static let displayTarget = "ikinotch.displayTarget"
+        static let timerSoundEnabled = "ikinotch.timerSoundEnabled"
         static let hideInFullscreen = "ikinotch.v2.hideInFullscreen"
         static let showNowPlaying = "ikinotch.showNowPlaying"
         static let showCalendar = "ikinotch.showCalendar"
@@ -235,6 +253,22 @@ public final class NotchSettings: ObservableObject {
 
     @Published public var showWiFiName: Bool {
         didSet { defaults.set(showWiFiName, forKey: Keys.showWiFiName) }
+    }
+
+    @Published public var enableGlobalShortcut: Bool {
+        didSet { defaults.set(enableGlobalShortcut, forKey: Keys.enableGlobalShortcut) }
+    }
+
+    @Published public var showMenuBarIcon: Bool {
+        didSet { defaults.set(showMenuBarIcon, forKey: Keys.showMenuBarIcon) }
+    }
+
+    @Published public var displayTarget: NotchDisplayTarget {
+        didSet { defaults.set(displayTarget.rawValue, forKey: Keys.displayTarget) }
+    }
+
+    @Published public var timerSoundEnabled: Bool {
+        didSet { defaults.set(timerSoundEnabled, forKey: Keys.timerSoundEnabled) }
     }
 
     @Published public var hideInFullscreen: Bool {
@@ -323,7 +357,6 @@ public final class NotchSettings: ObservableObject {
             self.idleStyle = .smartStatus
         }
         self.customIdleText = defaults.string(forKey: Keys.customIdleText) ?? "Focus"
-        self.customIdleText = defaults.string(forKey: Keys.customIdleText) ?? "Focus"
         self.customIdleShowBattery = defaults.object(forKey: Keys.customIdleShowBattery) as? Bool ?? true
         self.showCapsLockIndicator = defaults.object(forKey: Keys.showCapsLockIndicator) as? Bool ?? true
         self.showPrivacyIndicators = defaults.object(forKey: Keys.showPrivacyIndicators) as? Bool ?? true
@@ -334,6 +367,15 @@ public final class NotchSettings: ObservableObject {
             self.batteryDisplayStyle = .iconAndPercent
         }
         self.showWiFiName = defaults.object(forKey: Keys.showWiFiName) as? Bool ?? true
+        self.enableGlobalShortcut = defaults.object(forKey: Keys.enableGlobalShortcut) as? Bool ?? true
+        self.showMenuBarIcon = defaults.object(forKey: Keys.showMenuBarIcon) as? Bool ?? true
+        if let rawDisplay = defaults.string(forKey: Keys.displayTarget),
+           let target = NotchDisplayTarget(rawValue: rawDisplay) {
+            self.displayTarget = target
+        } else {
+            self.displayTarget = .primaryScreen
+        }
+        self.timerSoundEnabled = defaults.object(forKey: Keys.timerSoundEnabled) as? Bool ?? true
         self.hideInFullscreen = defaults.object(forKey: Keys.hideInFullscreen) as? Bool ?? true
         self.showNowPlaying = defaults.object(forKey: Keys.showNowPlaying) as? Bool ?? true
         self.showCalendar = defaults.object(forKey: Keys.showCalendar) as? Bool ?? true

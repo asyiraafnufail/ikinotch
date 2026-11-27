@@ -11,6 +11,7 @@ public final class SystemControlsManager: ObservableObject {
     @Published public private(set) var connectedBluetoothDevice: String?
     @Published public private(set) var isDarkMode: Bool = false
     @Published public private(set) var isMuted: Bool = false
+    @Published public private(set) var outputVolume: Float = 0.5
 
     private typealias SetBTPowerFn = @convention(c) (Int32) -> Void
     private let setBTPowerFn: SetBTPowerFn?
@@ -32,6 +33,7 @@ public final class SystemControlsManager: ObservableObject {
         refreshBluetooth()
         refreshDarkMode()
         refreshAudioMute()
+        refreshAudioVolume()
     }
 
     // MARK: - Bluetooth
@@ -133,6 +135,82 @@ public final class SystemControlsManager: ObservableObject {
         } else {
             refreshAudioMute()
         }
+    }
+
+    public func refreshAudioVolume() {
+        guard let deviceID = defaultOutputDeviceID() else { return }
+        if let vol = readVolumeScalar(deviceID: deviceID) {
+            outputVolume = vol
+        }
+    }
+
+    public func setOutputVolume(_ volume: Float) {
+        let clamped = min(1.0, max(0.0, volume))
+        outputVolume = clamped
+        guard let deviceID = defaultOutputDeviceID() else { return }
+        _ = writeVolumeScalar(deviceID: deviceID, volume: clamped)
+        if clamped > 0.01 && isMuted {
+            if writeMuteState(deviceID: deviceID, muted: false) {
+                isMuted = false
+            }
+        }
+    }
+
+    private func readVolumeScalar(deviceID: AudioDeviceID) -> Float? {
+        for element in [kAudioObjectPropertyElementMain, 1, 2] {
+            var volume: Float32 = 0
+            var size = UInt32(MemoryLayout<Float32>.size)
+            var address = AudioObjectPropertyAddress(
+                mSelector: kAudioDevicePropertyVolumeScalar,
+                mScope: kAudioDevicePropertyScopeOutput,
+                mElement: element
+            )
+            if AudioObjectHasProperty(deviceID, &address) {
+                let status = AudioObjectGetPropertyData(deviceID, &address, 0, nil, &size, &volume)
+                if status == noErr {
+                    return min(1.0, max(0.0, volume))
+                }
+            }
+        }
+        return nil
+    }
+
+    private func writeVolumeScalar(deviceID: AudioDeviceID, volume: Float) -> Bool {
+        var value: Float32 = min(1.0, max(0.0, volume))
+        let size = UInt32(MemoryLayout<Float32>.size)
+        var succeeded = false
+
+        // Try main element first; if not settable, set left & right channels (1 and 2)
+        var mainAddr = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyVolumeScalar,
+            mScope: kAudioDevicePropertyScopeOutput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        if AudioObjectHasProperty(deviceID, &mainAddr) {
+            var settable: DarwinBoolean = false
+            if AudioObjectIsPropertySettable(deviceID, &mainAddr, &settable) == noErr, settable.boolValue {
+                if AudioObjectSetPropertyData(deviceID, &mainAddr, 0, nil, size, &value) == noErr {
+                    return true
+                }
+            }
+        }
+
+        for channel: UInt32 in [1, 2] {
+            var addr = AudioObjectPropertyAddress(
+                mSelector: kAudioDevicePropertyVolumeScalar,
+                mScope: kAudioDevicePropertyScopeOutput,
+                mElement: channel
+            )
+            if AudioObjectHasProperty(deviceID, &addr) {
+                var settable: DarwinBoolean = false
+                if AudioObjectIsPropertySettable(deviceID, &addr, &settable) == noErr, settable.boolValue {
+                    if AudioObjectSetPropertyData(deviceID, &addr, 0, nil, size, &value) == noErr {
+                        succeeded = true
+                    }
+                }
+            }
+        }
+        return succeeded
     }
 
     private func defaultOutputDeviceID() -> AudioDeviceID? {

@@ -11,6 +11,10 @@ public struct NowPlayingInfo: Equatable {
     public let isPlaying: Bool
     public let artworkData: Data?
     public let accentHue: Double
+    public let duration: Double
+    public let elapsedTime: Double
+    public let playbackRate: Double
+    public let elapsedTimestamp: Date
 
     public init(
         title: String,
@@ -18,7 +22,11 @@ public struct NowPlayingInfo: Equatable {
         album: String,
         sourceName: String,
         isPlaying: Bool,
-        artworkData: Data? = nil
+        artworkData: Data? = nil,
+        duration: Double = 0,
+        elapsedTime: Double = 0,
+        playbackRate: Double = 1.0,
+        elapsedTimestamp: Date = Date()
     ) {
         self.title = title
         self.artist = artist
@@ -27,6 +35,27 @@ public struct NowPlayingInfo: Equatable {
         self.isPlaying = isPlaying
         self.artworkData = artworkData
         self.accentHue = Self.stableHue(from: "\(title)|\(artist)")
+        self.duration = max(0, duration)
+        self.elapsedTime = max(0, elapsedTime)
+        self.playbackRate = playbackRate
+        self.elapsedTimestamp = elapsedTimestamp
+    }
+
+    public func estimatedElapsed(at date: Date = Date()) -> Double {
+        guard duration > 0 else { return 0 }
+        let delta = isPlaying ? max(0, date.timeIntervalSince(elapsedTimestamp)) * max(0, playbackRate) : 0
+        return min(duration, max(0, elapsedTime + delta))
+    }
+
+    public static func formatDuration(_ seconds: Double) -> String {
+        let total = max(0, Int(seconds.rounded(.down)))
+        let hours = total / 3600
+        let mins = (total % 3600) / 60
+        let secs = total % 60
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, mins, secs)
+        }
+        return String(format: "%d:%02d", mins, secs)
     }
 
     private static func stableHue(from seed: String) -> Double {
@@ -214,12 +243,19 @@ public final class NowPlayingMonitor: ObservableObject {
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let artworkData = dict["kMRMediaRemoteNowPlayingInfoArtworkData"] as? Data
 
+        let playbackRate: Double
         let isPlaying: Bool
         if let rate = (dict["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? NSNumber)?.doubleValue {
+            playbackRate = rate
             isPlaying = rate > 0.0
         } else {
+            playbackRate = fallbackIsPlaying ? 1.0 : 0.0
             isPlaying = fallbackIsPlaying
         }
+
+        let duration = (dict["kMRMediaRemoteNowPlayingInfoDuration"] as? NSNumber)?.doubleValue ?? 0
+        let elapsed = (dict["kMRMediaRemoteNowPlayingInfoElapsedTime"] as? NSNumber)?.doubleValue ?? 0
+        let timestamp = (dict["kMRMediaRemoteNowPlayingInfoTimestamp"] as? Date) ?? Date()
 
         return NowPlayingInfo(
             title: title,
@@ -227,7 +263,11 @@ public final class NowPlayingMonitor: ObservableObject {
             album: album,
             sourceName: album.isEmpty ? "Media" : album,
             isPlaying: isPlaying,
-            artworkData: artworkData
+            artworkData: artworkData,
+            duration: duration,
+            elapsedTime: elapsed,
+            playbackRate: playbackRate,
+            elapsedTimestamp: timestamp
         )
     }
 
