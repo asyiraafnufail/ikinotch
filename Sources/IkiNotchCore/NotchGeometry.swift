@@ -10,20 +10,32 @@ public struct NotchMetrics: Equatable {
     public let height: CGFloat
     public let topEarRadius: CGFloat
     public let bottomCornerRadius: CGFloat
+    public let topMargin: CGFloat
 
     public var totalWidth: CGFloat {
         bodyWidth + (topEarRadius * 2)
     }
 
-    public var size: CGSize {
-        CGSize(width: totalWidth, height: height)
+    public var totalHeight: CGFloat {
+        height + topMargin
     }
 
-    public init(bodyWidth: CGFloat, height: CGFloat, topEarRadius: CGFloat, bottomCornerRadius: CGFloat) {
+    public var size: CGSize {
+        CGSize(width: totalWidth, height: totalHeight)
+    }
+
+    public init(
+        bodyWidth: CGFloat,
+        height: CGFloat,
+        topEarRadius: CGFloat,
+        bottomCornerRadius: CGFloat,
+        topMargin: CGFloat = 0
+    ) {
         self.bodyWidth = bodyWidth
         self.height = height
         self.topEarRadius = topEarRadius
         self.bottomCornerRadius = bottomCornerRadius
+        self.topMargin = topMargin
     }
 }
 
@@ -35,35 +47,61 @@ public enum NotchGeometry {
         preset: NotchSizePreset,
         customWidth: CGFloat,
         customHeight: CGFloat,
-        menuBarHeight: CGFloat = 25
+        menuBarHeight: CGFloat = 25,
+        shapeStyle: NotchShapeStyle = .notch
     ) -> NotchMetrics {
         let bodyWidth: CGFloat
-        let height: CGFloat
+        let baseHeight: CGFloat
 
         if preset == .custom {
             bodyWidth = min(max(customWidth, 120), 320)
-            height = min(max(customHeight, 20), 46)
+            baseHeight = min(max(customHeight, 20), 46)
         } else {
             bodyWidth = preset.defaultBodyWidth
-            height = max(20, menuBarHeight)
+            baseHeight = max(20, menuBarHeight)
         }
 
-        let earRadius = min(7, height * 0.28)
-        let bottomRadius = min(9, height * 0.36)
+        if shapeStyle == .pill {
+            let pillHeight = max(19, baseHeight.rounded() - 4)
+            return NotchMetrics(
+                bodyWidth: bodyWidth.rounded(),
+                height: pillHeight,
+                topEarRadius: 0,
+                bottomCornerRadius: pillHeight / 2,
+                topMargin: 2
+            )
+        }
+
+        let earRadius = min(7, baseHeight * 0.28)
+        let bottomRadius = min(9, baseHeight * 0.36)
         return NotchMetrics(
             bodyWidth: bodyWidth,
-            height: height,
+            height: baseHeight,
             topEarRadius: earRadius,
-            bottomCornerRadius: bottomRadius
+            bottomCornerRadius: bottomRadius,
+            topMargin: 0
         )
     }
 
-    public static func expandedMetrics(hasNowPlayingOrCalendar: Bool = true) -> NotchMetrics {
-        NotchMetrics(
+    public static func expandedMetrics(
+        hasNowPlayingOrCalendar: Bool = true,
+        shapeStyle: NotchShapeStyle = .notch
+    ) -> NotchMetrics {
+        if shapeStyle == .pill {
+            return NotchMetrics(
+                bodyWidth: 550,
+                height: hasNowPlayingOrCalendar ? 192 : 124,
+                topEarRadius: 0,
+                bottomCornerRadius: 24,
+                topMargin: 2
+            )
+        }
+        return NotchMetrics(
             bodyWidth: 550,
             height: hasNowPlayingOrCalendar ? 192 : 124,
             topEarRadius: 10,
-            bottomCornerRadius: 22
+            bottomCornerRadius: 22,
+            topMargin: 0
         )
     }
 
@@ -73,6 +111,7 @@ public enum NotchGeometry {
         customWidth: CGFloat,
         customHeight: CGFloat,
         menuBarHeight: CGFloat = 25,
+        shapeStyle: NotchShapeStyle = .notch,
         hasContentCards: Bool = true
     ) -> NotchMetrics {
         switch state {
@@ -81,10 +120,14 @@ public enum NotchGeometry {
                 preset: preset,
                 customWidth: customWidth,
                 customHeight: customHeight,
-                menuBarHeight: menuBarHeight
+                menuBarHeight: menuBarHeight,
+                shapeStyle: shapeStyle
             )
         case .expanded:
-            return expandedMetrics(hasNowPlayingOrCalendar: hasContentCards)
+            return expandedMetrics(
+                hasNowPlayingOrCalendar: hasContentCards,
+                shapeStyle: shapeStyle
+            )
         }
     }
 
@@ -96,6 +139,7 @@ public enum NotchGeometry {
         customWidth: CGFloat,
         customHeight: CGFloat,
         menuBarHeight: CGFloat = 25,
+        shapeStyle: NotchShapeStyle = .notch,
         horizontalOffset: CGFloat,
         useExpandedWindowBounds: Bool,
         hasContentCards: Bool = true
@@ -107,18 +151,19 @@ public enum NotchGeometry {
             customWidth: customWidth,
             customHeight: customHeight,
             menuBarHeight: menuBarHeight,
+            shapeStyle: shapeStyle,
             hasContentCards: hasContentCards
         )
 
         let windowWidth: CGFloat
         let windowHeight: CGFloat
         if useExpandedWindowBounds || state != .collapsed {
-            windowWidth = m.totalWidth + (shadowHorizontalPadding * 2)
-            windowHeight = m.height + shadowBottomPadding
+            windowWidth = (m.totalWidth + (shadowHorizontalPadding * 2)).rounded(.up)
+            windowHeight = (m.totalHeight + shadowBottomPadding).rounded(.up)
         } else {
-            // Tightly fitted to the collapsed notch to minimize WindowServer surface & click blocking
-            windowWidth = m.totalWidth
-            windowHeight = m.height
+            // Tightly fitted to the collapsed notch/pill with integer height so maxY always equals screenFrame.maxY
+            windowWidth = (m.totalWidth + (shapeStyle == .pill ? 4 : 0)).rounded(.up)
+            windowHeight = (m.totalHeight + (shapeStyle == .pill ? 2 : 0)).rounded(.up)
         }
 
         let desiredCenterX = screenFrame.midX + horizontalOffset
@@ -132,7 +177,7 @@ public enum NotchGeometry {
         }
 
         let originX = (clampedCenterX - (windowWidth / 2)).rounded()
-        let originY = (screenFrame.maxY - windowHeight).rounded()
+        let originY = screenFrame.maxY - windowHeight
 
         return CGRect(x: originX, y: originY, width: windowWidth, height: windowHeight)
     }

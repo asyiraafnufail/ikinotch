@@ -145,9 +145,21 @@ final class IkiNotchCoreTests: XCTestCase {
         let timer = QuickTimerManager()
         timer.selectPreset(minutes: 5)
         XCTAssertEqual(timer.formattedRemaining, "05:00")
+        timer.adjustMinutes(1)
+        XCTAssertEqual(timer.formattedRemaining, "06:00")
+        timer.setMode(.pomodoro)
+        XCTAssertEqual(timer.pomodoroPhase, .focus)
+        XCTAssertEqual(timer.formattedDisplay, "25:00")
+        timer.selectPomodoroPhase(.shortBreak)
+        XCTAssertEqual(timer.formattedDisplay, "05:00")
+        timer.setMode(.stopwatch)
+        XCTAssertEqual(timer.formattedDisplay, "00:00")
         XCTAssertFalse(timer.isRunning)
 
         XCTAssertEqual(SystemStatsProvider.formatUptime(9000), "2h 30m")
         XCTAssertEqual(SystemStatsProvider.formatUptime(90000), "1d 1h")
+        XCTAssertEqual(SystemStatsProvider.formatSpeed(512), "512 B/s")
+        XCTAssertEqual(SystemStatsProvider.formatSpeed(204_800), "200 KB/s")
+        XCTAssertEqual(SystemStatsProvider.formatSpeed(2_621_440), "2.5 MB/s")
     }
 }

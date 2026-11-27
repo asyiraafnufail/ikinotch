@@ -340,6 +340,7 @@ final class IkiNotchAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             customWidth: settings.customWidth,
             customHeight: settings.customHeight,
             menuBarHeight: barHeight,
+            shapeStyle: settings.shapeStyle,
             horizontalOffset: settings.horizontalOffset,
             useExpandedWindowBounds: controller.useExpandedWindowBounds,
             hasContentCards: settings.showNowPlaying || settings.showCalendar || settings.showFileShelf
@@ -353,6 +354,7 @@ final class IkiNotchAppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             customWidth: settings.customWidth,
             customHeight: settings.customHeight,
             menuBarHeight: controller.menuBarHeight,
+            shapeStyle: settings.shapeStyle,
             hasContentCards: settings.showNowPlaying || settings.showCalendar || settings.showFileShelf
         )
         hostView?.activeNotchSize = metrics.size

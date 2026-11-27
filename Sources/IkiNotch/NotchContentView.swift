@@ -32,6 +32,7 @@ struct NotchContentView: View {
     @State private var selectedTab: ExpandedTab = .home
     @State private var isDropTargeted: Bool = false
     @State private var copiedNoteFeedback: Bool = false
+    @State private var copiedIPFeedback: Bool = false
     @State private var pickedHexFeedback: String?
 
     private var hasCards: Bool {
@@ -45,6 +46,7 @@ struct NotchContentView: View {
             customWidth: settings.customWidth,
             customHeight: settings.customHeight,
             menuBarHeight: controller.menuBarHeight,
+            shapeStyle: settings.shapeStyle,
             hasContentCards: hasCards
         )
     }
@@ -65,7 +67,9 @@ struct NotchContentView: View {
         ZStack(alignment: .top) {
             notchBody
                 .frame(width: currentMetrics.totalWidth, height: currentMetrics.height)
+                .padding(.top, currentMetrics.topMargin)
                 .animation(transitionAnimation, value: controller.displayState)
+                .animation(.easeOut(duration: 0.18), value: settings.shapeStyle)
                 .animation(.easeOut(duration: 0.18), value: settings.sizePreset)
                 .animation(.easeOut(duration: 0.12), value: settings.customWidth)
                 .animation(.easeOut(duration: 0.12), value: settings.customHeight)
@@ -73,33 +77,57 @@ struct NotchContentView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
+    @ViewBuilder
     private var notchBody: some View {
-        let shape = NotchShape(
+        let isPill = settings.shapeStyle == .pill
+        let pillShape = RoundedRectangle(
+            cornerRadius: currentMetrics.bottomCornerRadius,
+            style: .continuous
+        )
+        let notchShape = NotchShape(
             topEarRadius: currentMetrics.topEarRadius,
             bottomCornerRadius: currentMetrics.bottomCornerRadius
         )
-        let outlineShape = NotchShape(
+        let notchOutline = NotchShape(
             topEarRadius: currentMetrics.topEarRadius,
             bottomCornerRadius: currentMetrics.bottomCornerRadius,
             closeTopEdge: false
         )
 
-        return ZStack {
-            shape
-                .fill(Color.black)
-                .overlay(
-                    outlineShape
-                        .stroke(
-                            Color.white.opacity(controller.displayState == .collapsed ? 0.06 : 0.14),
-                            lineWidth: 0.6
-                        )
-                )
-                .shadow(
-                    color: Color.black.opacity(controller.displayState == .collapsed ? 0.0 : 0.42),
-                    radius: controller.displayState == .expanded ? 14 : 7,
-                    x: 0,
-                    y: controller.displayState == .expanded ? 6 : 3
-                )
+        ZStack {
+            if isPill {
+                pillShape
+                    .fill(Color.black)
+                    .overlay(
+                        pillShape
+                            .stroke(
+                                Color.white.opacity(controller.displayState == .collapsed ? 0.14 : 0.18),
+                                lineWidth: 0.7
+                            )
+                    )
+                    .shadow(
+                        color: Color.black.opacity(controller.displayState == .collapsed ? 0.25 : 0.45),
+                        radius: controller.displayState == .expanded ? 16 : 5,
+                        x: 0,
+                        y: controller.displayState == .expanded ? 7 : 2
+                    )
+            } else {
+                notchShape
+                    .fill(Color.black)
+                    .overlay(
+                        notchOutline
+                            .stroke(
+                                Color.white.opacity(controller.displayState == .collapsed ? 0.06 : 0.14),
+                                lineWidth: 0.6
+                            )
+                    )
+                    .shadow(
+                        color: Color.black.opacity(controller.displayState == .collapsed ? 0.0 : 0.42),
+                        radius: controller.displayState == .expanded ? 14 : 7,
+                        x: 0,
+                        y: controller.displayState == .expanded ? 6 : 3
+                    )
+            }
 
             Group {
                 if controller.displayState == .collapsed {
@@ -114,10 +142,10 @@ struct NotchContentView: View {
                         .transition(.opacity)
                 }
             }
-            .padding(.horizontal, currentMetrics.topEarRadius + (controller.displayState == .collapsed ? 4 : 10))
+            .padding(.horizontal, isPill ? (controller.displayState == .collapsed ? 10 : 14) : (currentMetrics.topEarRadius + (controller.displayState == .collapsed ? 4 : 10)))
         }
-        .clipShape(shape)
-        .contentShape(shape)
+        .clipShape(AnyShape(isPill ? AnyShape(pillShape) : AnyShape(notchShape)))
+        .contentShape(AnyShape(isPill ? AnyShape(pillShape) : AnyShape(notchShape)))
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
             handleFileDrop(providers)
         }
@@ -174,13 +202,13 @@ struct NotchContentView: View {
             HStack(spacing: 8) {
                 if quickTimer.isRunning {
                     HStack(spacing: 4) {
-                        Image(systemName: "timer")
+                        Image(systemName: quickTimer.mode == .stopwatch ? "stopwatch" : "timer")
                             .font(.system(size: 9.5, weight: .bold))
-                            .foregroundColor(Color(red: 1.0, green: 0.65, blue: 0.20))
-                        Text(quickTimer.formattedRemaining)
+                            .foregroundColor(idleTimerAccent)
+                        Text(quickTimer.formattedDisplay)
                             .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                             .monospacedDigit()
-                            .foregroundColor(Color(red: 1.0, green: 0.78, blue: 0.35))
+                            .foregroundColor(idleTimerAccent)
                             .lineLimit(1)
                     }
                 } else if let track = nowPlaying.currentTrack, track.isPlaying {
@@ -418,7 +446,7 @@ struct NotchContentView: View {
             wifi.refresh()
             systemControls.refresh()
             if selectedTab == .stats {
-                systemStats.refresh()
+                systemStats.startLiveUpdates()
             }
             if selectedTab == .notes {
                 onSetKeyFocusAllowed?(true)
@@ -435,11 +463,14 @@ struct NotchContentView: View {
         }
         .onDisappear {
             onSetKeyFocusAllowed?(false)
+            systemStats.stopLiveUpdates()
         }
         .onChange(of: selectedTab) { tab in
             onSetKeyFocusAllowed?(tab == .notes)
             if tab == .stats {
-                systemStats.refresh()
+                systemStats.startLiveUpdates()
+            } else {
+                systemStats.stopLiveUpdates()
             }
         }
     }
@@ -759,13 +790,38 @@ struct NotchContentView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    // MARK: - Timer Card (Pomodoro / Countdown)
+    // MARK: - Timer Card (Countdown, Pomodoro, Stopwatch)
+
+    private var idleTimerAccent: Color {
+        if quickTimer.mode == .stopwatch {
+            return Color(red: 0.30, green: 0.74, blue: 1.0)
+        }
+        if quickTimer.isBreakPhase {
+            return Color(red: 0.24, green: 0.85, blue: 0.42)
+        }
+        return Color(red: 1.0, green: 0.72, blue: 0.25)
+    }
 
     private var timerCard: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .center, spacing: 6) {
-                Text(quickTimer.formattedRemaining)
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+        HStack(spacing: 14) {
+            // Left: Live digits + status + progress bar
+            VStack(alignment: .center, spacing: 5) {
+                if quickTimer.mode == .pomodoro {
+                    Text("\(quickTimer.pomodoroPhase.rawValue) · #\(quickTimer.completedFocusSessions + 1)")
+                        .font(.system(size: 9.5, weight: .semibold))
+                        .foregroundColor(idleTimerAccent)
+                } else if quickTimer.mode == .stopwatch, let lap = quickTimer.formattedLastLap {
+                    Text("Lap \(lap)")
+                        .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
+                        .foregroundColor(.white.opacity(0.62))
+                } else {
+                    Text(quickTimer.mode.rawValue)
+                        .font(.system(size: 9.5, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.5))
+                }
+
+                Text(quickTimer.formattedDisplay)
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .foregroundColor(
                         quickTimer.didFinishRecently
@@ -778,31 +834,91 @@ struct NotchContentView: View {
                         Capsule()
                             .fill(Color.white.opacity(0.12))
                         Capsule()
-                            .fill(
-                                quickTimer.isRunning
-                                    ? Color(red: 1.0, green: 0.65, blue: 0.20)
-                                    : Color.white.opacity(0.55)
-                            )
+                            .fill(quickTimer.isRunning ? idleTimerAccent : Color.white.opacity(0.5))
                             .frame(width: max(4, geo.size.width * quickTimer.progress))
                     }
                 }
-                .frame(width: 140, height: 5)
+                .frame(width: 148, height: 5)
             }
             .frame(maxWidth: .infinity)
 
-            VStack(spacing: 8) {
-                HStack(spacing: 6) {
-                    ForEach([5, 15, 25, 45], id: \.self) { mins in
-                        let isCurrent = quickTimer.totalSeconds == mins * 60
+            // Right: Mode switcher + mode-specific presets + action buttons
+            VStack(spacing: 7) {
+                HStack(spacing: 2) {
+                    ForEach(QuickTimerMode.allCases) { m in
+                        let selected = quickTimer.mode == m
                         Button {
-                            quickTimer.selectPreset(minutes: mins)
+                            quickTimer.setMode(m)
                         } label: {
-                            Text("\(mins)m")
-                                .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                                .foregroundColor(isCurrent ? .black : .white.opacity(0.8))
-                                .padding(.horizontal, 9)
-                                .padding(.vertical, 4)
-                                .background(isCurrent ? Color.white : Color.white.opacity(0.10))
+                            Text(m.rawValue)
+                                .font(.system(size: 9.5, weight: .semibold))
+                                .foregroundColor(selected ? .black : .white.opacity(0.75))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3.5)
+                                .background(selected ? Color.white : Color.clear)
+                                .clipShape(Capsule())
+                                .contentShape(Capsule())
+                        }
+                        .buttonStyle(NotchPressButtonStyle())
+                    }
+                }
+                .padding(2)
+                .background(Color.white.opacity(0.08))
+                .clipShape(Capsule())
+
+                // Mode-specific secondary row
+                switch quickTimer.mode {
+                case .countdown:
+                    HStack(spacing: 5) {
+                        ForEach([1, 5, 10, 25, 45], id: \.self) { mins in
+                            let isCurrent = quickTimer.totalSeconds == mins * 60
+                            Button {
+                                quickTimer.selectPreset(minutes: mins)
+                            } label: {
+                                Text("\(mins)m")
+                                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                                    .foregroundColor(isCurrent ? .black : .white.opacity(0.8))
+                                    .padding(.horizontal, 7)
+                                    .padding(.vertical, 3.5)
+                                    .background(isCurrent ? Color.white : Color.white.opacity(0.10))
+                                    .clipShape(Capsule())
+                                    .contentShape(Capsule())
+                            }
+                            .buttonStyle(NotchPressButtonStyle())
+                        }
+                    }
+
+                case .pomodoro:
+                    HStack(spacing: 5) {
+                        ForEach([PomodoroPhase.focus, .shortBreak, .longBreak], id: \.rawValue) { phase in
+                            let isCurrent = quickTimer.pomodoroPhase == phase
+                            Button {
+                                quickTimer.selectPomodoroPhase(phase)
+                            } label: {
+                                Text(phase.rawValue)
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(isCurrent ? .black : .white.opacity(0.8))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3.5)
+                                    .background(isCurrent ? Color.white : Color.white.opacity(0.10))
+                                    .clipShape(Capsule())
+                                    .contentShape(Capsule())
+                            }
+                            .buttonStyle(NotchPressButtonStyle())
+                        }
+                    }
+
+                case .stopwatch:
+                    HStack(spacing: 6) {
+                        Button {
+                            quickTimer.recordLap()
+                        } label: {
+                            Label("Mark Lap", systemImage: "flag.fill")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.88))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 3.5)
+                                .background(Color.white.opacity(0.12))
                                 .clipShape(Capsule())
                                 .contentShape(Capsule())
                         }
@@ -810,7 +926,24 @@ struct NotchContentView: View {
                     }
                 }
 
-                HStack(spacing: 8) {
+                // Controls row
+                HStack(spacing: 6) {
+                    if quickTimer.mode == .countdown {
+                        Button {
+                            quickTimer.adjustMinutes(-1)
+                        } label: {
+                            Text("-1m")
+                                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                                .foregroundColor(.white.opacity(0.82))
+                                .padding(.horizontal, 7)
+                                .frame(height: 26)
+                                .background(Color.white.opacity(0.10))
+                                .clipShape(Capsule())
+                                .contentShape(Capsule())
+                        }
+                        .buttonStyle(NotchPressButtonStyle())
+                    }
+
                     Button {
                         quickTimer.toggleStartPause()
                     } label: {
@@ -818,9 +951,9 @@ struct NotchContentView: View {
                             quickTimer.isRunning ? "Pause" : "Start",
                             systemImage: quickTimer.isRunning ? "pause.fill" : "play.fill"
                         )
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(size: 10.5, weight: .semibold))
                         .foregroundColor(.white)
-                        .frame(width: 96, height: 28)
+                        .frame(width: 82, height: 26)
                         .background(
                             quickTimer.isRunning
                                 ? Color(red: 1.0, green: 0.58, blue: 0.16)
@@ -831,97 +964,174 @@ struct NotchContentView: View {
                     }
                     .buttonStyle(NotchPressButtonStyle())
 
+                    if quickTimer.mode == .countdown {
+                        Button {
+                            quickTimer.adjustMinutes(1)
+                        } label: {
+                            Text("+1m")
+                                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                                .foregroundColor(.white.opacity(0.82))
+                                .padding(.horizontal, 7)
+                                .frame(height: 26)
+                                .background(Color.white.opacity(0.10))
+                                .clipShape(Capsule())
+                                .contentShape(Capsule())
+                        }
+                        .buttonStyle(NotchPressButtonStyle())
+                    }
+
                     Button {
                         quickTimer.reset()
                     } label: {
                         Image(systemName: "arrow.counterclockwise")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.system(size: 10.5, weight: .semibold))
                             .foregroundColor(.white.opacity(0.82))
-                            .frame(width: 28, height: 28)
+                            .frame(width: 26, height: 26)
                             .background(Color.white.opacity(0.10))
                             .clipShape(Circle())
                             .contentShape(Circle())
                     }
                     .buttonStyle(NotchPressButtonStyle())
-                    .help("Reset Timer")
+                    .help("Reset")
                 }
             }
             .frame(maxWidth: .infinity)
         }
-        .padding(12)
+        .padding(11)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    // MARK: - Stats Card (On-Demand System Snapshot)
+    // MARK: - Stats Card (Live While Visible, 0% CPU When Closed)
 
     private var statsCard: some View {
         let s = systemStats.snapshot
         return VStack(spacing: 8) {
-            HStack(spacing: 10) {
+            // Row 1: CPU, Memory, Disk Free meters
+            HStack(spacing: 8) {
                 statMeterTile(
-                    title: "Memory",
-                    value: String(format: "%.1f / %.0f GB", s.usedMemoryGB, s.totalMemoryGB),
+                    title: "CPU",
+                    value: String(format: "%.0f%%", s.cpuUsagePercent),
+                    ratio: s.cpuRatio,
+                    tint: s.cpuRatio > 0.80 ? Color(red: 0.95, green: 0.32, blue: 0.28) : Color(red: 1.0, green: 0.68, blue: 0.20)
+                )
+                statMeterTile(
+                    title: "RAM",
+                    value: String(format: "%.1f/%.0fG", s.usedMemoryGB, s.totalMemoryGB),
                     ratio: s.memoryRatio,
                     tint: s.memoryRatio > 0.85 ? Color(red: 0.95, green: 0.32, blue: 0.28) : Color(red: 0.04, green: 0.52, blue: 1.0)
                 )
                 statMeterTile(
                     title: "Disk Free",
-                    value: String(format: "%.0f / %.0f GB", s.freeDiskGB, s.totalDiskGB),
+                    value: String(format: "%.0f/%.0fG", s.freeDiskGB, s.totalDiskGB),
                     ratio: s.diskUsedRatio,
                     tint: s.diskUsedRatio > 0.88 ? Color(red: 1.0, green: 0.62, blue: 0.18) : Color(red: 0.24, green: 0.85, blue: 0.42)
                 )
             }
 
-            HStack(spacing: 10) {
+            // Row 2: Network Speed (Down/Up), Thermal State, Local IP (click to copy), Uptime
+            HStack(spacing: 8) {
                 HStack(spacing: 6) {
-                    Image(systemName: "network")
-                        .font(.system(size: 10.5))
-                        .foregroundColor(.white.opacity(0.6))
-                    Text("IP: \(s.localIPAddress)")
-                        .font(.system(size: 10.5, weight: .medium, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.88))
-                        .lineLimit(1)
+                    HStack(spacing: 2) {
+                        Image(systemName: "arrow.down")
+                            .font(.system(size: 8.5, weight: .bold))
+                            .foregroundColor(Color(red: 0.24, green: 0.85, blue: 0.42))
+                        Text(SystemStatsProvider.formatSpeed(s.downloadBytesPerSec))
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundColor(.white.opacity(0.9))
+                    }
+                    HStack(spacing: 2) {
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 8.5, weight: .bold))
+                            .foregroundColor(Color(red: 0.30, green: 0.68, blue: 1.0))
+                        Text(SystemStatsProvider.formatSpeed(s.uploadBytesPerSec))
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundColor(.white.opacity(0.9))
+                    }
                 }
-                .padding(.horizontal, 10)
-                .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
+                .lineLimit(1)
+                .padding(.horizontal, 8)
+                .frame(minHeight: 28)
                 .background(Color.white.opacity(0.07))
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-                HStack(spacing: 6) {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 10.5))
-                        .foregroundColor(.white.opacity(0.6))
-                    Text("Up: \(s.uptimeFormatted)")
-                        .font(.system(size: 10.5, weight: .medium, design: .rounded))
+                HStack(spacing: 4) {
+                    Image(systemName: "thermometer.medium")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(thermalColor(s.thermal))
+                    Text(s.thermal.rawValue)
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundColor(.white.opacity(0.88))
-                        .lineLimit(1)
                 }
-                .padding(.horizontal, 10)
-                .frame(maxWidth: .infinity, minHeight: 28, alignment: .leading)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, 8)
+                .frame(minHeight: 28)
                 .background(Color.white.opacity(0.07))
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .help("Thermal State")
 
                 Button {
-                    systemStats.refresh()
+                    guard s.localIPAddress != "—" && s.localIPAddress != "Offline" else { return }
+                    let pb = NSPasteboard.general
+                    pb.clearContents()
+                    pb.setString(s.localIPAddress, forType: .string)
+                    copiedIPFeedback = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                        copiedIPFeedback = false
+                    }
                 } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.82))
-                        .frame(width: 28, height: 28)
-                        .background(Color.white.opacity(0.10))
-                        .clipShape(Circle())
-                        .contentShape(Circle())
+                    HStack(spacing: 4) {
+                        Image(systemName: "network")
+                            .font(.system(size: 9.5))
+                            .foregroundColor(.white.opacity(0.6))
+                        Text(copiedIPFeedback ? "Copied!" : s.localIPAddress)
+                            .font(.system(size: 10, weight: .medium, design: .monospaced))
+                            .foregroundColor(copiedIPFeedback ? Color(red: 0.24, green: 0.85, blue: 0.42) : .white.opacity(0.88))
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 8)
+                    .frame(maxWidth: .infinity, minHeight: 28, alignment: .center)
+                    .background(Color.white.opacity(0.07))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 .buttonStyle(NotchPressButtonStyle())
-                .help("Refresh Stats")
+                .help("Click to copy Local IP")
+
+                HStack(spacing: 4) {
+                    Image(systemName: "clock")
+                        .font(.system(size: 9.5))
+                        .foregroundColor(.white.opacity(0.6))
+                    Text(s.uptimeFormatted)
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.88))
+                        .lineLimit(1)
+                }
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, 8)
+                .frame(minHeight: 28)
+                .background(Color.white.opacity(0.07))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .help("System Uptime")
             }
         }
         .padding(10)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func thermalColor(_ level: ThermalLevel) -> Color {
+        switch level {
+        case .cool: return Color(red: 0.24, green: 0.85, blue: 0.42)
+        case .fair: return Color(red: 1.0, green: 0.78, blue: 0.25)
+        case .warm: return Color(red: 1.0, green: 0.52, blue: 0.16)
+        case .hot: return Color(red: 0.95, green: 0.30, blue: 0.26)
+        }
     }
 
     private func statMeterTile(title: String, value: String, ratio: Double, tint: Color) -> some View {

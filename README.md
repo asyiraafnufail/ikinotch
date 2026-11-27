@@ -1,47 +1,47 @@
 # IkiNotch
 
-Aplikasi virtual notch native untuk macOS (tanpa notch fisik) yang dibangun dengan **Swift + AppKit + SwiftUI**, dirancang untuk **near-zero idle consumption** (0% background polling saat collapsed).
+A lightweight, native macOS virtual notch app for non-notch Macs built with **Swift, AppKit, and SwiftUI** — engineered for **near-zero idle consumption** (0% background polling when collapsed).
 
-## Fitur Utama
+## Key Features
 
-- **Menu Bar Flush Virtual Notch** — siluet notch autentik dengan telinga cekung yang otomatis mengikuti batas tinggi menu bar saat idle, dan otomatis hilang di **Fullscreen Spaces**.
-- **3 Mode Idle Content** (semuanya 0 timer saat idle):
-  - **Smart Status** — otomatis menampilkan Media (Browser YouTube, Spotify, Apple Music, VLC) → Event Calendar → Nama Wi-Fi (SSID) → Custom Text + Baterai.
-  - **Custom** — teks pilihan sendiri (+ opsional baterai).
-  - **Pure Black** — hitam polos ala notch fisik MacBook.
-- **Indikator Event-Driven** — ikon **Caps Lock (`⇪`)** dan **Keep Awake (`☕`)** muncul otomatis saat aktif.
-- **Panel Expanded (`Home` · `Media` · `Tray` · `Notes` · `Timer` · `Stats` · `Tools`)**:
-  - **Home:** Dashboard gabungan (Mini Media, Calendar & Tray summary, serta 4 Quick Controls: **Wi-Fi**, **Bluetooth**, **Dark/Light Theme**, **Mute**).
-  - **Media:** Now Playing lengkap dengan album art / thumbnail (cached 128px) & kontrol sistem-wide via `MediaRemote`.
-  - **Tray:** File Drop Shelf (drag-and-drop titip file tanpa copy disk + AirDrop).
-  - **Notes:** Catatan kilat auto-save + Copy & Clear 1-klik.
-  - **Timer:** Pomodoro / Countdown (`5m · 15m · 25m · 45m`), tampil di notch idle saat berjalan.
-  - **Stats:** Snapshot on-demand Memory, Disk Free, Local IP, dan Uptime.
-  - **Tools:** Screenshot (Clipboard), Color Picker (`#HEX`), Terminal, Downloads, Activity Monitor, Sleep Screen.
-  - **Keep Awake (`☕`):** cegah Mac sleep 1-klik via `IOPMAssertion`.
-- **Simetris & Customizable:** pilihan *Trigger Mode* (`Expand on Hover` / `Click Only`), *Animation Style* (`Snappy`, `Smooth`, `Bouncy`, `Instant`), *Hover Delay* (`50 / 100 / 150 / 200 ms`), ukuran notch, dan *Launch at Login* (`SMAppService`).
+- **Notch & Pill (Dynamic Island) Styles** — switch live between a menu-bar flush **Notch** (concave ears) and a floating **Pill** capsule; auto-hides in **Fullscreen Spaces**.
+- **3 Zero-Timer Idle Modes**:
+  - **Smart Status** — automatically displays Active Timer → Now Playing (Browser YouTube, Spotify, Apple Music, VLC) → Calendar Up Next → Connected Wi-Fi (SSID) → `Offline` + proportional real-level Battery.
+  - **Custom** — custom text (+ optional battery).
+  - **Pure Black** — solid black MacBook-style notch.
+- **Event-Driven Indicators** — subtle **Caps Lock (`⇪`)** and **Keep Awake (`☕`)** icons appear automatically when active.
+- **Expanded Panel (`Home` · `Media` · `Tray` · `Notes` · `Timer` · `Stats` · `Tools`)**:
+  - **Home:** Combined dashboard (Mini Media, Calendar & Tray summary, plus 4 Quick Controls: **Wi-Fi**, **Bluetooth**, **Dark/Light Theme**, **Mute**).
+  - **Media:** Full Now Playing card with cached 128px album art / YouTube thumbnail & system-wide `MediaRemote` controls.
+  - **Tray:** File Drop Shelf (zero-copy drag-and-drop holding tray + AirDrop).
+  - **Notes:** Auto-saving quick scratchpad with one-click Copy & Clear.
+  - **Timer:** Multi-mode **Timer** (`1m/5m/10m/25m/45m` + `±1m`), **Pomodoro** (*Focus / Break / Long Break* cycles), and **Stopwatch** (*Mark Lap*) with live idle notch display.
+  - **Stats:** Live-while-visible CPU %, RAM, Disk Free, Network Down/Up speed, Thermal state, clickable Local IP, and Uptime (0% CPU when closed).
+  - **Tools:** Screenshot (Clipboard), Color Picker (`#HEX`), Terminal, Downloads, Activity Monitor, and Sleep Screen.
+  - **Keep Awake (`☕`):** one-click sleep prevention via `IOPMAssertion`.
+- **Customizable & Symmetrical:** choose *Trigger Mode* (`Expand on Hover` / `Click Only`), *Animation Style* (`Snappy`, `Smooth`, `Bouncy`, `Instant`), *Hover Delay* (`50 / 100 / 150 / 200 ms`), notch size, and *Launch at Login* (`SMAppService`).
 
-Lihat rincian lengkap semua fitur di [FEATURES.md](FEATURES.md).
+See the full feature breakdown in [FEATURES.md](FEATURES.md).
 
-## Arsitektur Zero-Idle
+## Zero-Idle Architecture
 
-- **0 polling timer saat collapsed** — seluruh monitor menggunakan event OS (`NSTrackingArea`, `IOPSNotificationCreateRunLoopSource`, `MediaRemote`, `CWEventDelegate`, `EKEventStoreChanged`, `NSEvent.flagsChanged`).
-- **App Nap aktif penuh** & frame `NSPanel` menyusut ke ukuran minimum saat collapsed.
-- **Zero third-party dependencies** — ukuran app bundle ~1.9 MB.
+- **0 polling timers when collapsed** — backed by native OS events (`NSTrackingArea`, `IOPSNotificationCreateRunLoopSource`, `MediaRemote`, `CWEventDelegate`, `EKEventStoreChanged`, `NSEvent.flagsChanged`).
+- **Full App Nap support** & dynamic `NSPanel` frame shrinking when collapsed.
+- **Zero third-party dependencies** — compact ~2.5 MB `.app` bundle.
 
-## Build & Jalankan
+## Build & Run
 
-Persyaratan: **macOS 13.0+** dan **Xcode 15+ / Swift 5.9+**.
+Requirements: **macOS 13.0+** and **Xcode 15+ / Swift 5.9+**.
 
 ```bash
-# Jalankan unit test
+# Run unit tests
 swift test
 
-# Build release & package menjadi build/IkiNotch.app
+# Build release binary and package build/IkiNotch.app
 ./scripts/build_app.sh
 
-# Jalankan aplikasi
+# Launch the app
 open build/IkiNotch.app
 ```
 
-Untuk pemakaian harian dan mengaktifkan **Launch at Login**, pindahkan `build/IkiNotch.app` ke folder `/Applications`.
+For daily use and **Launch at Login**, move `build/IkiNotch.app` into `/Applications`.

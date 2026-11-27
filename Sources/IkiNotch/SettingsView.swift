@@ -54,6 +54,13 @@ struct SettingsView: View {
             }
 
             Section("Appearance & Size") {
+                Picker("Shape Style", selection: $settings.shapeStyle) {
+                    ForEach(NotchShapeStyle.allCases) { style in
+                        Text(style.displayName).tag(style)
+                    }
+                }
+                .pickerStyle(.segmented)
+
                 Picker("Notch Size", selection: $settings.sizePreset) {
                     ForEach(NotchSizePreset.allCases) { preset in
                         Text(preset.displayName).tag(preset)

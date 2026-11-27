@@ -1,6 +1,20 @@
 import Foundation
 import ServiceManagement
 
+public enum NotchShapeStyle: String, CaseIterable, Identifiable, Codable {
+    case notch = "notch"
+    case pill = "pill"
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .notch: return "Notch"
+        case .pill: return "Pill (Dynamic Island)"
+        }
+    }
+}
+
 public enum NotchSizePreset: String, CaseIterable, Identifiable, Codable {
     case compact = "compact"
     case standard = "standard"
@@ -117,6 +131,7 @@ public enum NotchIdleStyle: String, CaseIterable, Identifiable, Codable {
 public final class NotchSettings: ObservableObject {
     private enum Keys {
         static let isNotchVisible = "ikinotch.isNotchVisible"
+        static let shapeStyle = "ikinotch.shapeStyle"
         static let sizePreset = "ikinotch.sizePreset"
         static let customWidth = "ikinotch.customWidth"
         static let customHeight = "ikinotch.customHeight"
@@ -141,6 +156,10 @@ public final class NotchSettings: ObservableObject {
 
     @Published public var isNotchVisible: Bool {
         didSet { defaults.set(isNotchVisible, forKey: Keys.isNotchVisible) }
+    }
+
+    @Published public var shapeStyle: NotchShapeStyle {
+        didSet { defaults.set(shapeStyle.rawValue, forKey: Keys.shapeStyle) }
     }
 
     @Published public var sizePreset: NotchSizePreset {
@@ -227,6 +246,13 @@ public final class NotchSettings: ObservableObject {
         self.defaults = defaults
 
         self.isNotchVisible = defaults.object(forKey: Keys.isNotchVisible) as? Bool ?? true
+
+        if let rawShape = defaults.string(forKey: Keys.shapeStyle),
+           let shape = NotchShapeStyle(rawValue: rawShape) {
+            self.shapeStyle = shape
+        } else {
+            self.shapeStyle = .notch
+        }
 
         if let rawPreset = defaults.string(forKey: Keys.sizePreset),
            let preset = NotchSizePreset(rawValue: rawPreset) {
