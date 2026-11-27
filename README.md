@@ -23,13 +23,16 @@ A lightweight, native macOS virtual notch app for non-notch Macs built with **Sw
 
 See the full feature breakdown in [FEATURES.md](FEATURES.md).
 
-## Visual Modes
+## Screenshots
 
-```text
-Notch (Idle):      ╭─── 📶 MyWiFi   [████ ] 86% ───╮
-Pill (Idle):       ( 📶 MyWiFi   🎥 🎙   [████ ] 86% )
-Expanded (7 Tabs): [ 01:48 Sat 28 | 🏠 🎵 📥 📝 ⏱ 📊 🛠 | [████ ] 86% · 4:12 | ☕ ⚙ ]
-```
+### Idle Modes — Notch & Pill (Dynamic Island)
+![IkiNotch Idle Modes — Notch & Pill](docs/screenshots/idle-modes.png)
+
+### Expanded Panel — Home Dashboard
+![IkiNotch Expanded Home Dashboard](docs/screenshots/expanded-home.png)
+
+### Feature Tabs — Media, Timer, Stats & Tools
+![IkiNotch Feature Tabs](docs/screenshots/expanded-tabs.png)
 
 ## Zero-Idle Architecture
 
