@@ -59,8 +59,7 @@ See the full feature breakdown in [FEATURES.md](FEATURES.md).
 
 - **macOS:** **macOS 13.0 (Ventura)** or later (Ventura, Sonoma, Sequoia).
 - **Macs (Non-Notch Primary Target):**
-  - **Intel Macs (`x86_64`):** MacBook Pro, MacBook Air, iMac, Mac mini, Mac Pro — *100% native*.
-  - **Apple Silicon Macs (`M1 / M2 / M3 / M4`):** *100% native when built from source* (`./scripts/build_app.sh`); prebuilt Intel `.zip` runs via Rosetta 2.
+  - **Intel (`x86_64`) & Apple Silicon (`M1 / M2 / M3 / M4`):** Packaged as a **Universal Binary** — runs **100% natively** on both Intel and Apple Silicon Macs without Rosetta 2.
   - **External Monitors & Desktop Macs:** Works on any external display (Multi-Monitor *Main Display* or *Follow Active Display*). Desktop Macs without a battery automatically hide battery indicators cleanly.
 
 ## Build & Run

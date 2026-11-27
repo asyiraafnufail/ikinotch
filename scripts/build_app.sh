@@ -14,9 +14,11 @@ mkdir -p "$CACHE_ROOT/clang" "$CACHE_ROOT/swiftpm"
 export CLANG_MODULE_CACHE_PATH="$CACHE_ROOT/clang"
 export SWIFT_MODULECACHE_PATH="$CACHE_ROOT/clang"
 
-echo "▶ Building IkiNotch (release)..."
+echo "▶ Building IkiNotch (Universal Binary: arm64 + x86_64, release)..."
 cd "$ROOT_DIR"
 swift build -c release \
+    --arch arm64 \
+    --arch x86_64 \
     --disable-sandbox \
     --cache-path "$CACHE_ROOT/swiftpm" \
     --config-path "$CACHE_ROOT/swiftpm-cfg" \
@@ -24,6 +26,8 @@ swift build -c release \
     -Xswiftc -module-cache-path -Xswiftc "$CACHE_ROOT/clang"
 
 BIN_PATH="$(swift build -c release \
+    --arch arm64 \
+    --arch x86_64 \
     --disable-sandbox \
     --cache-path "$CACHE_ROOT/swiftpm" \
     --config-path "$CACHE_ROOT/swiftpm-cfg" \
