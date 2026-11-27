@@ -12,3 +12,8 @@ DerivedData/
 .vscode/
 *.xcuserdata
 *.xcscmblueprint
+
+# Local AI Memory & Private Notes (Never Push to GitHub)
+MEMORY.md
+.memory/
+*.local.md
